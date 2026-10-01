@@ -1,0 +1,238 @@
+FACTS-ONLY MUTUAL FUND ASSISTANT
+
+1. Problem
+
+Retail investors often need quick answers to simple factual questions about mutual fund schemes, such as expense ratio, exit load, minimum SIP amount, benchmark, riskometer, ELSS lock-in period, and how to download account or capital-gains statements.
+
+Finding these facts can require going through multiple scheme pages, factsheets, KIM/SID documents, AMC websites, SEBI resources, and AMFI resources. The information may also be spread across different documents, making it difficult to find a concise and reliable answer quickly.
+
+The goal is to build a small RAG-based FAQ assistant that helps users retrieve verified facts about selected mutual fund schemes from official public sources.
+
+2. Product Context
+
+Product: Groww
+
+The assistant is being designed in the context of a Groww-like mutual fund experience, but Groww pages will not be used as factual knowledge sources for the RAG system.
+
+The assistant will use only verified public information from:
+- HDFC Mutual Fund / HDFC AMC
+- SEBI
+- AMFI
+
+3. Corpus Scope
+
+AMC:
+HDFC Mutual Fund
+
+Selected schemes:
+1. HDFC Large Cap Fund
+2. HDFC Flexi Cap Fund
+3. HDFC ELSS Tax Saver Fund
+4. HDFC Mid Cap Fund
+
+The knowledge corpus will contain 15–25 official public sources, including relevant:
+- Scheme pages
+- Factsheets
+- Key Information Memorandums (KIM)
+- Scheme Information Documents (SID)
+- Scheme FAQs
+- Fee and charges information
+- Riskometer and benchmark information
+- Investor service pages
+- Account statement and capital-gains statement guides
+- Relevant SEBI and AMFI investor education or regulatory pages
+
+4. Target Users
+
+Primary users:
+- Retail users who want quick factual information about mutual fund schemes.
+- Users comparing factual scheme details without asking for investment recommendations.
+
+Secondary users:
+- Support teams
+- Content teams
+- Teams answering repetitive mutual fund information queries
+
+5. Product Goal
+
+Build a simple FAQ assistant that can retrieve relevant information from the selected official source corpus and provide concise, citation-backed answers to factual mutual fund questions.
+
+The assistant should make it easier for users to find verified information without requiring them to search through multiple long documents.
+
+6. Example Questions the Assistant Should Answer
+
+The assistant should be able to answer factual questions such as:
+
+- What is the expense ratio of HDFC Large Cap Fund?
+- What is the exit load of HDFC Flexi Cap Fund?
+- What is the minimum SIP amount for HDFC Mid Cap Fund?
+- What is the lock-in period for HDFC ELSS Tax Saver Fund?
+- What is the riskometer level of the scheme?
+- What is the benchmark of the scheme?
+- What is the minimum investment amount?
+- What is the investment objective of the scheme?
+- How can I download a capital-gains statement?
+- How can I download an account statement?
+
+7. Answer Requirements
+
+For factual questions, the assistant must:
+
+- Answer using only information retrieved from the approved official sources.
+- Keep the answer concise and limited to 3 sentences or fewer.
+- Include exactly one clear source link.
+- Include the text:
+  "Last updated from sources: <date>"
+- Avoid unsupported claims or information not found in the available sources.
+- Say that the information could not be verified from the available sources when the retrieved information does not support an answer.
+
+8. Investment Advice Boundary
+
+The assistant is facts-only and must not provide investment advice.
+
+It must refuse questions such as:
+
+- Should I buy this mutual fund?
+- Should I sell this mutual fund?
+- Which fund should I invest in?
+- Which fund is better?
+- Is this a good mutual fund?
+- Is this fund suitable for me?
+- What should I invest in based on my income or age?
+- Which scheme will give me the highest returns?
+
+The refusal should be polite and explain that the assistant provides factual information only.
+
+Where appropriate, the refusal should provide a relevant official investor-education source from AMFI or SEBI.
+
+9. Performance and Returns Boundary
+
+The assistant must not:
+
+- Calculate investment returns.
+- Compare scheme performance.
+- Predict future returns.
+- Recommend a scheme based on historical performance.
+- State how much money a user will earn.
+
+Questions about returns or performance should receive a facts-only refusal or be redirected to the relevant official factsheet or source where appropriate.
+
+10. Privacy and PII
+
+The assistant must not accept, request, process, or store personally identifiable or account-specific information.
+
+This includes:
+- PAN
+- Aadhaar
+- OTP
+- Bank details
+- Mutual fund account numbers
+- Phone numbers
+- Email addresses
+
+If a user provides such information, the assistant should not process it and should respond with a safe message explaining that only general factual scheme information can be provided.
+
+11. Source Policy
+
+Only approved official sources may be used by the RAG system.
+
+Allowed publishers:
+- HDFC Mutual Fund / HDFC AMC
+- SEBI
+- AMFI
+
+Third-party blogs, financial websites, forums, social media posts, and other unofficial sources must not be used as knowledge sources.
+
+Every factual answer must be traceable to one of the approved sources.
+
+12. RAG Requirement
+
+The assistant should use a Retrieval-Augmented Generation architecture.
+
+The ingestion pipeline should follow:
+
+Official sources
+→ Load and process documents
+→ Chunk content
+→ Create embeddings
+→ Store embeddings in a vector database
+
+The query pipeline should follow:
+
+User question
+→ Determine whether the question is in scope
+→ Create query embedding
+→ Retrieve relevant chunks
+→ Provide retrieved context to the LLM
+→ Generate a grounded answer
+→ Attach the appropriate source citation
+
+The same embedding model should be used for document chunks and user questions.
+
+13. Transparency
+
+The assistant should make the source of its factual answers visible to the user.
+
+The source citation should come from the retrieved source metadata rather than being invented by the LLM.
+
+The "Last updated from sources" date should also come from the source metadata.
+
+14. UI Requirements
+
+The interface should be intentionally small and simple.
+
+It should include:
+- A welcome line
+- A short description of the assistant
+- A clear note:
+  "Facts-only. No investment advice."
+- 3 example questions
+- A question input
+- An answer area
+- One source link
+- Last updated date
+
+15. Out of Scope
+
+The assistant will not provide:
+
+- Investment recommendations
+- Buy or sell decisions
+- Portfolio construction
+- Personalized financial advice
+- Performance or return calculations
+- Scheme ranking
+- Personalized account information
+- Transaction execution
+- Portfolio tracking
+- User account management
+- Collection of personal information
+
+16. Success Criteria
+
+The prototype will be considered successful if:
+
+- It answers factual mutual fund questions using the selected official source corpus.
+- Retrieved information is relevant to the question.
+- Answers are concise and limited to 3 sentences or fewer.
+- Every factual answer contains one correct official source link.
+- Every factual answer contains the "Last updated from sources:" line.
+- Advice and portfolio questions are refused.
+- PII and account-specific requests are safely blocked.
+- Unsupported questions result in a clear "not found / cannot verify" response instead of a fabricated answer.
+- No third-party source is used as factual knowledge.
+- The RAG pipeline can be inspected and tested independently from the UI.
+
+17. Known Limitations
+
+This is a small-corpus prototype and is not intended to answer questions about every mutual fund in India.
+
+Its answers are limited to information available in the selected 15–25 official sources and the four selected HDFC Mutual Fund schemes.
+
+The assistant may not answer questions when the required fact is not present or cannot be reliably retrieved from the available source corpus.
+
+18. Disclaimer
+
+Facts-only. No investment advice.
+
+This assistant provides factual information from selected official public sources and does not provide investment, financial, or portfolio advice.

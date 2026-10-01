@@ -1,0 +1,1 @@
+"""Streamlit application for the facts-only mutual fund assistant."""

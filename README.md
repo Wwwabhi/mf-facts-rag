@@ -50,7 +50,9 @@ if [ ! -f .env ]; then cp .env.example .env; fi
 
 Keep the API key in `.env`; `.gitignore` excludes it. Do not commit credentials.
 
-The app expects the prepared chunks and persistent Chroma index. To rebuild them from the processed documents:
+`CHROMA_DB_PATH` is optional and defaults to `vectorstore/chroma_db`; set it in `.env` to use another persistent location. On first Streamlit startup, the app checks the configured collection and builds it from `data/chunks/chunks.jsonl` when missing or empty. This check/build is cached for the Streamlit process.
+
+To rebuild chunks and embeddings from processed documents manually:
 
 ```bash
 python -m src.chunking.chunker
@@ -80,7 +82,13 @@ Run the automated tests with:
 python -m unittest discover -v
 ```
 
-Real end-to-end sample responses are recorded in [data/sample_qa.md](data/sample_qa.md). The unit tests mock the Groq client; they do not make live API requests.
+Regenerate [data/sample_qa.md](data/sample_qa.md) by running the ten required questions through the real query pipeline:
+
+```bash
+python -m scripts.generate_sample_qa
+```
+
+This makes live Groq requests for questions allowed by the guardrails and only replaces the sample file if all ten pipeline responses include verified source metadata. The unit tests mock the Groq client; they do not make live API requests.
 
 ## Guardrails
 
@@ -92,7 +100,7 @@ Real end-to-end sample responses are recorded in [data/sample_qa.md](data/sample
 
 ## Disclaimer
 
-**Facts-only. No investment advice.** This assistant provides general information from the selected public sources. It does not provide investment, financial, tax, legal, or portfolio advice, and cannot access individual accounts.
+**Facts-only. No investment advice.** This is the same disclaimer constant rendered in the Streamlit UI. The assistant provides general information from selected public sources; it does not provide investment, financial, tax, legal, or portfolio advice, and cannot access individual accounts.
 
 ## Known Limitations
 

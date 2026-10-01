@@ -7,10 +7,11 @@ from typing import Any
 from src.vectorstore.chroma_client import COLLECTION_NAME
 from src.vectorstore.embed_chunks import MODEL_NAME, load_embedding_model
 from src.retrieval.rerank import rerank_chunks
+from src.config import settings
 
 
 ROOT = Path(__file__).resolve().parents[2]
-PERSIST_DIRECTORY = ROOT / "vectorstore" / "chroma_db"
+PERSIST_DIRECTORY = settings.CHROMA_DB_PATH
 _MODEL_CACHE: dict[str, Any] = {}
 _MODEL_LOCK = Lock()
 _COLLECTION_CACHE: dict[str, Any] = {}

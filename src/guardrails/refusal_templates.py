@@ -1,3 +1,5 @@
+FACTS_ONLY_DISCLAIMER = "Facts-only. No investment advice."
+
 REFUSAL_MESSAGES = {
     "privacy": (
         "Please do not share PAN, Aadhaar, OTP, banking, or other personal information. "

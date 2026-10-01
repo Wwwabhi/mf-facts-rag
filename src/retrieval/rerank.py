@@ -6,6 +6,7 @@ from typing import Any
 
 
 WORD_PATTERN = re.compile(r"[a-z0-9]+", re.IGNORECASE)
+RISKOMETER_QUERY = re.compile(r"\b(?:riskometer|risk level)\b", re.IGNORECASE)
 STOP_WORDS = {
     "a", "an", "and", "are", "do", "does", "for", "from", "how", "i", "in", "is",
     "it", "of", "on", "the", "to", "what", "when", "where", "which", "who", "with",
@@ -26,6 +27,15 @@ def _terms(text: str) -> set[str]:
 def _scheme_matches(query_terms: set[str], scheme: str) -> bool:
     scheme_terms = _terms(scheme)
     return any(alias.issubset(query_terms) and alias.issubset(scheme_terms) for alias in SCHEME_ALIASES)
+
+
+def _riskometer_document_priority(document_type: str) -> int:
+    normalized_type = document_type.strip().casefold()
+    if normalized_type == "scheme page":
+        return 0
+    if normalized_type == "factsheet":
+        return 1
+    return 2
 
 
 def rerank_chunks(question: str, chunks: list[dict[str, Any]], top_k: int) -> list[dict[str, Any]]:
@@ -54,7 +64,17 @@ def rerank_chunks(question: str, chunks: list[dict[str, Any]], top_k: int) -> li
             }
         )
 
-    ranked.sort(key=lambda chunk: (-chunk["relevance_score"], chunk.get("distance", 2.0)))
+    if RISKOMETER_QUERY.search(question):
+        ranked.sort(
+            key=lambda chunk: (
+                not _scheme_matches(query_terms, str(chunk.get("metadata", {}).get("scheme", ""))),
+                _riskometer_document_priority(str(chunk.get("metadata", {}).get("document_type", ""))),
+                -chunk["relevance_score"],
+                chunk.get("distance", 2.0),
+            )
+        )
+    else:
+        ranked.sort(key=lambda chunk: (-chunk["relevance_score"], chunk.get("distance", 2.0)))
     source_limit = max(2, (top_k + 1) // 2)
     selected: list[dict[str, Any]] = []
     deferred: list[dict[str, Any]] = []

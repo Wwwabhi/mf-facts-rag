@@ -4,7 +4,7 @@ import re
 from typing import Any
 
 from src.guardrails.answer_policy import _is_official_url
-from src.llm.groq_client import create_groq_client
+from src.llm.groq_client import GroqRequestError, create_groq_client, format_groq_error
 from src.llm.response_formatter import format_answer
 
 
@@ -63,33 +63,39 @@ def generate_answer(
 
     model = (model_name or settings.GROQ_MODEL).strip()
     if not model:
-        raise RuntimeError("GROQ_MODEL is not set. Add it to the project-root .env file.")
+        raise GroqRequestError("GROQ_MODEL is not set. Add it to the project-root .env file.")
     if client is None:
-        client = create_groq_client()
+        try:
+            client = create_groq_client()
+        except Exception as exc:
+            raise GroqRequestError(format_groq_error(exc, settings.GROQ_API_KEY, model)) from None
     source_url, source_date = _citation_source(evidence)
 
-    completion = client.chat.completions.create(
-        model=model,
-        temperature=0,
-        max_tokens=350,
-        messages=[
-            {
-                "role": "system",
-                "content": (
-                    "You are a facts-only assistant for the supported HDFC mutual fund corpus. "
-                    "Answer using only the supplied evidence. If it does not support the answer, "
-                    "say that the available approved sources cannot verify it. Do not give investment "
-                    "advice, recommendations, performance or returns analysis, or account-specific help. "
-                    "Write no more than three concise sentences. Return answer text only; do not include "
-                    "URLs, citations, source dates, or headings."
-                ),
-            },
-            {
-                "role": "user",
-                "content": f"Question:\n{question}\n\nRetrieved evidence:\n{_format_context(evidence)}",
-            },
-        ],
-    )
+    try:
+        completion = client.chat.completions.create(
+            model=model,
+            temperature=0,
+            max_tokens=350,
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "You are a facts-only assistant for the supported HDFC mutual fund corpus. "
+                        "Answer using only the supplied evidence. If it does not support the answer, "
+                        "say that the available approved sources cannot verify it. Do not give investment "
+                        "advice, recommendations, performance or returns analysis, or account-specific help. "
+                        "Write no more than three concise sentences. Return answer text only; do not include "
+                        "URLs, citations, source dates, or headings."
+                    ),
+                },
+                {
+                    "role": "user",
+                    "content": f"Question:\n{question}\n\nRetrieved evidence:\n{_format_context(evidence)}",
+                },
+            ],
+        )
+    except Exception as exc:
+        raise GroqRequestError(format_groq_error(exc, settings.GROQ_API_KEY, model)) from None
     answer_text = completion.choices[0].message.content or ""
     answer_text = answer_text.strip()
     if not answer_text:

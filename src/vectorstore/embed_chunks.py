@@ -5,6 +5,7 @@ from typing import Any
 
 
 MODEL_NAME = "sentence-transformers/all-MiniLM-L6-v2"
+EMBEDDING_DIMENSION = 384
 
 
 def load_embedding_model(model_name: str = MODEL_NAME) -> Any:

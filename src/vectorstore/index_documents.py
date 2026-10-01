@@ -11,13 +11,15 @@ from src.vectorstore.embed_chunks import (
     load_embedding_model,
     write_embeddings_preview,
 )
-from src.vectorstore.schema import chroma_metadata, load_chunks
+from src.vectorstore.schema import chroma_metadata, deduplicate_chunks, load_chunks, validate_registered_sources
+from src.config import settings
 
 
 ROOT = Path(__file__).resolve().parents[2]
 CHUNKS_PATH = ROOT / "data" / "chunks" / "chunks.jsonl"
+CSV_PATH = ROOT / "data" / "mf_rag_sources.csv"
 PREVIEW_PATH = ROOT / "data" / "embeddings_preview.txt"
-PERSIST_DIRECTORY = ROOT / "vectorstore" / "chroma_db"
+PERSIST_DIRECTORY = settings.CHROMA_DB_PATH
 BATCH_SIZE = 128
 
 
@@ -33,7 +35,8 @@ def index_chunks(
     persist_directory: str | Path = PERSIST_DIRECTORY,
     preview_path: str | Path = PREVIEW_PATH,
 ) -> dict[str, Any]:
-    chunks = load_chunks(chunks_path)
+    chunks, duplicates_removed = deduplicate_chunks(load_chunks(chunks_path))
+    validate_registered_sources(chunks, CSV_PATH)
     if not chunks:
         raise ValueError(f"No chunks found in {chunks_path}")
 
@@ -66,6 +69,7 @@ def index_chunks(
 
     return {
         "chunks_processed": len(chunks),
+        "duplicates_removed": duplicates_removed,
         "vectors_stored": vectors_stored,
         "embedding_dimension": dimension,
         "persistence_path": str(Path(persist_directory).resolve()),
@@ -76,6 +80,7 @@ def index_chunks(
 def main() -> int:
     report = index_chunks()
     print(f"Chunks processed: {report['chunks_processed']}")
+    print(f"Duplicate chunks removed: {report['duplicates_removed']}")
     print(f"Vectors stored: {report['vectors_stored']}")
     print(f"Embedding dimension: {report['embedding_dimension']}")
     print(f"ChromaDB persistence path: {report['persistence_path']}")

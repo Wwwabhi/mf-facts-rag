@@ -10,6 +10,7 @@ from src.retrieval.query_pipeline import answer_question
 from src.retrieval.rerank import rerank_chunks
 from src.retrieval import retrieve as retrieval_module
 from src.retrieval.retrieve import retrieve_chunks
+from src.data.source_registry import load_registry
 
 
 OFFICIAL_URL = "https://www.hdfcfund.com/explore/mutual-funds/hdfc-flexi-cap-fund/direct"
@@ -86,6 +87,47 @@ class RetrievalTests(unittest.TestCase):
 
         self.assertEqual(reranked[0]["chunk_id"], "flexi-cap")
 
+    def test_riskometer_ranks_matching_scheme_page_then_factsheet(self) -> None:
+        candidates = [
+            {
+                "chunk_id": "wrong-scheme-page",
+                "content": "Large Cap riskometer.",
+                "metadata": {"source_id": "5", "scheme": "HDFC Large Cap Fund", "document_type": "Scheme Page"},
+                "distance": 0.01,
+            },
+            {
+                "chunk_id": "matching-factsheet",
+                "content": "Flexi Cap riskometer.",
+                "metadata": {"source_id": "4", "scheme": "HDFC Flexi Cap Fund", "document_type": "Factsheet"},
+                "distance": 0.12,
+            },
+            {
+                "chunk_id": "matching-kim",
+                "content": "Flexi Cap riskometer.",
+                "metadata": {"source_id": "3", "scheme": "HDFC Flexi Cap Fund", "document_type": "KIM"},
+                "distance": 0.01,
+            },
+            {
+                "chunk_id": "matching-scheme-page",
+                "content": "Flexi Cap riskometer.",
+                "metadata": {"source_id": "1", "scheme": "HDFC Flexi Cap Fund", "document_type": "Scheme Page"},
+                "distance": 0.3,
+            },
+            {
+                "chunk_id": "wrong-scheme-factsheet",
+                "content": "Large Cap riskometer.",
+                "metadata": {"source_id": "8", "scheme": "HDFC Large Cap Fund", "document_type": "Factsheet"},
+                "distance": 0.01,
+            },
+        ]
+
+        reranked = rerank_chunks("What is the riskometer for HDFC Flexi Cap Fund?", candidates, 5)
+
+        self.assertEqual(
+            [chunk["chunk_id"] for chunk in reranked[:3]],
+            ["matching-scheme-page", "matching-factsheet", "matching-kim"],
+        )
+
 
 class GroqAnswerTests(unittest.TestCase):
     def test_sends_question_and_evidence_and_appends_provenance(self) -> None:
@@ -124,6 +166,84 @@ class GroqAnswerTests(unittest.TestCase):
 
 
 class QueryPipelineTests(unittest.TestCase):
+    def test_each_guardrail_refusal_includes_official_metadata_source(self) -> None:
+        blocked_questions = (
+            ("Should I invest in HDFC Flexi Cap Fund?", "investment_advice"),
+            ("What are the 5-year returns of HDFC Flexi Cap Fund?", "performance_returns"),
+            ("My PAN is ABCDE1234F. What is my HDFC Flexi Cap Fund balance?", "privacy"),
+            ("Show my HDFC folio balance.", "account_specific"),
+            ("What will the weather be tomorrow?", "unsupported"),
+        )
+        faq = next(record for record in load_registry(retrieval_module.ROOT / "data" / "mf_rag_sources.csv") if record.document_type == "Investor FAQs")
+        factsheet = next(
+            record
+            for record in load_registry(retrieval_module.ROOT / "data" / "mf_rag_sources.csv")
+            if record.scheme == "HDFC Flexi Cap Fund" and record.document_type == "Factsheet"
+        )
+
+        for question, category in blocked_questions:
+            with self.subTest(category=category):
+                retriever = Mock()
+                generator = Mock()
+                response = answer_question(question, retriever=retriever, generator=generator)
+
+                self.assertEqual(response.decision.category, category)
+                self.assertFalse(response.decision.allowed)
+                self.assertTrue(response.source_url)
+                self.assertTrue(response.source_date)
+                self.assertIn("hdfcfund.com", response.source_url or "")
+                retriever.assert_not_called()
+                generator.assert_not_called()
+                if category == "performance_returns":
+                    self.assertEqual(response.source_url, factsheet.source_url)
+                    self.assertEqual(response.source_date, factsheet.source_date)
+                else:
+                    self.assertEqual(response.source_url, faq.source_url)
+                    self.assertEqual(response.source_date, faq.verified_on)
+
+    def test_cannot_verify_refusal_uses_official_source_metadata(self) -> None:
+        retriever = Mock(return_value=[])
+        generator = Mock()
+
+        response = answer_question(
+            "What is the exit load for HDFC Flexi Cap Fund?",
+            retriever=retriever,
+            generator=generator,
+        )
+
+        self.assertEqual(response.decision.category, "cannot_verify")
+        self.assertEqual(response.source_url, "https://www.hdfcfund.com/services/faqs")
+        self.assertEqual(response.source_date, "2026-09-24")
+        generator.assert_not_called()
+
+    def test_generated_source_date_must_match_retrieved_metadata(self) -> None:
+        evidence = [
+            {
+                "chunk_id": "chunk-1",
+                "content": "Exit load details.",
+                "metadata": {
+                    "source_url": OFFICIAL_URL,
+                    "source_date": "Live/current page",
+                    "verified_on": "2026-09-24",
+                },
+                "distance": 0.1,
+            }
+        ]
+        generator = lambda question, chunks: format_answer(
+            "The scheme has an exit load.", OFFICIAL_URL, "2025-01-01"
+        )
+
+        response = answer_question(
+            "What is the exit load for HDFC Flexi Cap Fund?",
+            retriever=lambda question, top_k: evidence,
+            generator=generator,
+        )
+
+        self.assertEqual(response.decision.category, "cannot_verify")
+        self.assertEqual(response.answer, "The available approved sources do not verify an answer to this question.")
+        self.assertEqual(response.source_url, OFFICIAL_URL)
+        self.assertEqual(response.source_date, "2026-09-24")
+
     def test_pipeline_returns_answer_source_and_date(self) -> None:
         evidence = [
             {

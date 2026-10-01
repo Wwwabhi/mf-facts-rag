@@ -3,10 +3,11 @@ from __future__ import annotations
 from pathlib import Path
 
 from src.vectorstore.chroma_client import COLLECTION_NAME
+from src.config import settings
 
 
 ROOT = Path(__file__).resolve().parents[2]
-PERSIST_DIRECTORY = ROOT / "vectorstore" / "chroma_db"
+PERSIST_DIRECTORY = settings.CHROMA_DB_PATH
 
 
 def main() -> int:

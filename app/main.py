@@ -125,19 +125,32 @@ def main() -> None:
         .st-key-example_0 button p,
         .st-key-example_1 button p,
         .st-key-example_2 button p { color: var(--ink) !important; font-size: 0.9rem; line-height: 1.35; }
-        [data-testid="stTextInputRootElement"] > div {
-            min-height: 58px;
-            border: 1px solid #d7e3de;
-            border-radius: 18px;
-            background: #ffffff;
-            box-shadow: 0 4px 16px rgba(24, 51, 44, 0.045);
-        }
-        [data-testid="stTextInputRootElement"] input {
-            min-height: 54px;
-            padding: 0.2rem 1rem;
-            color: var(--ink) !important;
-            background: transparent;
-        }
+        [data-testid="stTextInputRootElement"] > div,
+[data-testid="stTextInputRootElement"] div[data-baseweb="input"] {
+    min-height: 58px;
+    border: 1px solid #d7e3de !important;
+    border-radius: 18px;
+    background: #f1f4f3 !important;
+    box-shadow: 0 2px 10px rgba(24, 51, 44, 0.04);
+}
+
+[data-testid="stTextInputRootElement"] input {
+    min-height: 54px;
+    padding: 0.2rem 1rem;
+    color: #18332c !important;
+    background: #f1f4f3 !important;
+    caret-color: #18332c !important;
+}
+
+[data-testid="stTextInputRootElement"] input::placeholder {
+    color: #71817c !important;
+    opacity: 1 !important;
+}
+
+[data-testid="stTextInputRootElement"] > div:focus-within {
+    border-color: var(--groww-green) !important;
+    box-shadow: 0 0 0 1px var(--groww-green) !important;
+}
         [data-testid="stTextInputRootElement"] > div:focus-within {
             border-color: var(--groww-green);
             box-shadow: 0 0 0 1px var(--groww-green);

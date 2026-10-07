@@ -160,6 +160,13 @@ def main() -> None:
             margin: 0 auto !important;
         }
 
+        @media (min-width: 769px) {
+            [data-testid="stApp"]:has([data-testid="stSidebar"][aria-expanded="false"]) .block-container,
+            body:has([data-testid="stSidebar"][aria-expanded="false"]) .block-container {
+                margin-left: max(68px, calc(50vw - 390px)) !important;
+            }
+        }
+
         /* Sidebar container */
         [data-testid="stSidebar"] {
             background-color: #0e1215 !important;
@@ -183,33 +190,126 @@ def main() -> None:
             margin-top: -48px !important;
         }
 
-        /* Collapse / Expand Hamburger button */
-        [data-testid="stSidebarCollapseButton"] button,
-        [data-testid="stSidebarCollapsedControl"] button {
-            background: #14191c !important;
-            border: 1px solid #232c32 !important;
-            border-radius: 8px !important;
-            color: #9ba8b5 !important;
+        /* Left Collapsed Rail & Sidebar Toggle */
+        .sidebar-rail {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            bottom: 0 !important;
+            width: 58px !important;
+            background-color: #0e1215 !important;
+            border-right: 1px solid #1a2025 !important;
+            z-index: 99 !important;
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            padding: 16px 0 20px 0 !important;
+            gap: 14px !important;
+            box-sizing: border-box !important;
+            user-select: none !important;
+        }
+
+        /* Hide rail when Streamlit sidebar is expanded */
+        [data-testid="stApp"]:has([data-testid="stSidebar"][aria-expanded="true"]) .sidebar-rail {
+            display: none !important;
+        }
+
+        .rail-logo-wrapper {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            width: 36px !important;
+            height: 36px !important;
+            margin-bottom: 2px !important;
+        }
+
+        .rail-logo-link {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            text-decoration: none !important;
+        }
+
+        /* Circular New Chat button in rail matching Image 1 */
+        .rail-btn-plus {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
             width: 38px !important;
             height: 38px !important;
-            min-height: 38px !important;
-            min-width: 38px !important;
+            border-radius: 50% !important;
+            background: #1c2328 !important;
+            border: 1px solid #273138 !important;
+            color: #dce3eb !important;
+            text-decoration: none !important;
+            transition: all 0.15s ease !important;
+        }
+
+        .rail-btn-plus:hover {
+            background: #252e35 !important;
+            border-color: #384652 !important;
+            color: #ffffff !important;
+            transform: scale(1.05) !important;
+        }
+
+        /* Individual Rail Icons matching Image 1 */
+        .rail-item {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            width: 36px !important;
+            height: 36px !important;
+            border-radius: 8px !important;
+            color: #717e8c !important;
+            cursor: pointer !important;
+            transition: color 0.15s ease, background 0.15s ease !important;
+            text-decoration: none !important;
+        }
+
+        .rail-item:hover {
+            color: #ffffff !important;
+            background: #161c20 !important;
+        }
+
+        .rail-item.active {
+            color: #00d09c !important;
+        }
+
+        /* Placeholder slot for Streamlit expand button in rail */
+        .rail-toggle-slot {
+            width: 36px !important;
+            height: 36px !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            color: #717e8c !important;
+        }
+
+        /* Streamlit Collapse / Expand Toggle Buttons (Panel-Left icon matching Image 1 & 2) */
+        [data-testid="stSidebarCollapseButton"] button,
+        [data-testid="stSidebarCollapsedControl"] button {
+            background: transparent !important;
+            border: 1px solid transparent !important;
+            border-radius: 8px !important;
+            color: #8b99a6 !important;
+            width: 36px !important;
+            height: 36px !important;
+            min-height: 36px !important;
+            min-width: 36px !important;
             padding: 0 !important;
             display: flex !important;
             align-items: center !important;
             justify-content: center !important;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3) !important;
-            z-index: 999 !important;
+            box-shadow: none !important;
             cursor: pointer !important;
-            transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease !important;
+            transition: all 0.15s ease !important;
         }
 
         [data-testid="stSidebarCollapseButton"] button:hover,
         [data-testid="stSidebarCollapsedControl"] button:hover {
-            background: #1c2227 !important;
-            border-color: #354049 !important;
+            background: #182025 !important;
+            border-color: #27333c !important;
             color: #ffffff !important;
-            transform: scale(1.03) !important;
         }
 
         /* Completely hide any inner default icons/spans/svgs */
@@ -218,46 +318,66 @@ def main() -> None:
             display: none !important;
         }
 
-        /* Single 3-bar hamburger icon */
+        /* Panel-Left Icon (rounded rectangle split vertically, matching Image 1 item 5 & Image 2 top right) */
         [data-testid="stSidebarCollapseButton"] button::after,
         [data-testid="stSidebarCollapsedControl"] button::after {
             content: "";
             display: block;
-            width: 16px;
-            height: 11px;
-            background: linear-gradient(
-                to bottom,
-                #9ba8b5 0px, #9ba8b5 2.2px,
-                transparent 2.2px, transparent 4.4px,
-                #9ba8b5 4.4px, #9ba8b5 6.6px,
-                transparent 6.6px, transparent 8.8px,
-                #9ba8b5 8.8px, #9ba8b5 11px
-            );
+            width: 19px;
+            height: 19px;
+            background-color: currentColor;
+            -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect width='18' height='18' x='3' y='3' rx='3'/%3E%3Cline x1='9' y1='3' x2='9' y2='21'/%3E%3C/svg%3E") no-repeat center;
+            mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect width='18' height='18' x='3' y='3' rx='3'/%3E%3Cline x1='9' y1='3' x2='9' y2='21'/%3E%3C/svg%3E") no-repeat center;
+            -webkit-mask-size: contain;
+            mask-size: contain;
+            transition: background-color 0.15s ease;
         }
 
-        [data-testid="stSidebarCollapseButton"] button:hover::after,
-        [data-testid="stSidebarCollapsedControl"] button:hover::after {
-            background: linear-gradient(
-                to bottom,
-                #ffffff 0px, #ffffff 2.2px,
-                transparent 2.2px, transparent 4.4px,
-                #ffffff 4.4px, #ffffff 6.6px,
-                transparent 6.6px, transparent 8.8px,
-                #ffffff 8.8px, #ffffff 11px
-            );
+        /* Align expand button directly in the 5th icon slot of the rail on desktop */
+        @media (min-width: 769px) {
+            [data-testid="stSidebarCollapsedControl"] {
+                position: fixed !important;
+                top: 218px !important;
+                left: 11px !important;
+                width: 36px !important;
+                height: 36px !important;
+                z-index: 102 !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                background: transparent !important;
+                border: none !important;
+                padding: 0 !important;
+                visibility: visible !important;
+                opacity: 1 !important;
+            }
         }
 
-        [data-testid="stSidebarCollapsedControl"] {
-            position: fixed !important;
-            top: 1.25rem !important;
-            left: 1.25rem !important;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            z-index: 999 !important;
-            visibility: visible !important;
-            opacity: 1 !important;
-            background: transparent !important;
+        /* Mobile Viewport: Floating toggle button */
+        @media (max-width: 768px) {
+            .sidebar-rail {
+                display: none !important;
+            }
+
+            [data-testid="stSidebarCollapsedControl"] {
+                position: fixed !important;
+                top: 0.85rem !important;
+                left: 0.85rem !important;
+                width: 36px !important;
+                height: 36px !important;
+                z-index: 999 !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                background: #14191c !important;
+                border: 1px solid #232c32 !important;
+                border-radius: 8px !important;
+            }
+
+            [data-testid="stSidebarCollapsedControl"] button {
+                width: 36px !important;
+                height: 36px !important;
+            }
         }
 
         /* Top Left Corner Brand Lockup */
@@ -683,6 +803,71 @@ def main() -> None:
             }
         }
         </style>
+        <aside class="sidebar-rail" aria-label="Quick navigation rail">
+            <div class="rail-logo-wrapper" title="Groww Mutual Fund Facts">
+                <a href="?new_chat=1" class="rail-logo-link" target="_self">
+                    <svg width="28" height="28" viewBox="0 0 100 100" fill="none">
+                        <clipPath id="rail-groww-clip"><circle cx="50" cy="50" r="50"/></clipPath>
+                        <g clip-path="url(#rail-groww-clip)">
+                            <rect width="100" height="100" fill="#5367FF"/>
+                            <path d="M-5 105 L-5 72 L42 56 L62 66 L105 44 L105 105 Z" fill="#00D09C"/>
+                        </g>
+                    </svg>
+                </a>
+            </div>
+
+            <a href="?new_chat=1" class="rail-btn-plus" title="New" target="_self">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+            </a>
+
+            <div class="rail-item active" title="Chat Assistant">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <rect width="18" height="14" x="3" y="3" rx="2"></rect>
+                    <line x1="8" y1="21" x2="16" y2="21"></line>
+                    <line x1="12" y1="17" x2="12" y2="21"></line>
+                    <line x1="7" y1="8" x2="7.01" y2="8"></line>
+                    <line x1="17" y1="8" x2="17.01" y2="8"></line>
+                    <line x1="10" y1="12" x2="14" y2="12"></line>
+                </svg>
+            </div>
+
+            <div class="rail-item" title="Quick Facts">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="9"></circle>
+                    <polyline points="12 7 12 12 15 15"></polyline>
+                    <path d="M19 16l-3 5h4l-2 3" stroke-width="1.8"></path>
+                </svg>
+            </div>
+
+            <div class="rail-toggle-slot" title="Expand sidebar">
+                <!-- Overlayed by stSidebarCollapsedControl button -->
+            </div>
+
+            <div class="rail-item" title="Guardrails & Settings">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+            </div>
+
+            <div class="rail-item" title="Verified Sources">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"></path>
+                    <path d="M2 10h20"></path>
+                </svg>
+            </div>
+
+            <div class="rail-item" title="Chat History">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+                    <path d="M3 3v5h5"></path>
+                    <path d="M12 7v5l4 2"></path>
+                </svg>
+            </div>
+        </aside>
         """,
         unsafe_allow_html=True,
     )
@@ -716,7 +901,7 @@ def main() -> None:
                     <line x1="5" y1="12" x2="19" y2="12"></line>
                 </svg>
             </div>
-            <span>New Chat</span>
+            <span>New</span>
         </a>
 
         <div class="sidebar-section-header">

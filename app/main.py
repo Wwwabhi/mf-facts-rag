@@ -78,7 +78,7 @@ def main() -> None:
     st.set_page_config(
         page_title="Mutual Fund Facts",
         layout="centered",
-        initial_sidebar_state="expanded",
+        initial_sidebar_state="collapsed",
     )
 
     if "chat_history" not in st.session_state:
@@ -137,7 +137,6 @@ def main() -> None:
 
         [data-testid="stHeader"] {
             background: transparent !important;
-            pointer-events: none !important;
         }
 
         /* Hide Streamlit Deploy button, decoration line, and toolbar */
@@ -151,11 +150,11 @@ def main() -> None:
             visibility: hidden !important;
         }
 
-        /* Center content layout with bottom clearance for fixed input bar */
+        /* Center content layout with strict unified alignment */
         .block-container {
             max-width: 780px !important;
             padding-top: 3.5rem !important;
-            padding-bottom: 115px !important;
+            padding-bottom: 4rem !important;
             padding-left: 1.5rem !important;
             padding-right: 1.5rem !important;
             margin: 0 auto !important;
@@ -184,18 +183,8 @@ def main() -> None:
             margin-top: -48px !important;
         }
 
-        /* Sidebar Hamburger Button (Collapsed Control) - Fixed Top Left Corner */
-        [data-testid="stSidebarCollapsedControl"] {
-            position: fixed !important;
-            top: 0.85rem !important;
-            left: 0.85rem !important;
-            z-index: 99999 !important;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            pointer-events: auto !important;
-        }
-
+        /* Collapse / Expand Hamburger button */
+        [data-testid="stSidebarCollapseButton"] button,
         [data-testid="stSidebarCollapsedControl"] button {
             background: #14191c !important;
             border: 1px solid #232c32 !important;
@@ -204,46 +193,23 @@ def main() -> None:
             width: 38px !important;
             height: 38px !important;
             min-height: 38px !important;
+            min-width: 38px !important;
             padding: 0 !important;
             display: flex !important;
             align-items: center !important;
             justify-content: center !important;
-            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45) !important;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3) !important;
+            z-index: 999 !important;
             cursor: pointer !important;
-            pointer-events: auto !important;
-            transition: background 0.15s ease, border-color 0.15s ease !important;
+            transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease !important;
         }
 
+        [data-testid="stSidebarCollapseButton"] button:hover,
         [data-testid="stSidebarCollapsedControl"] button:hover {
             background: #1c2227 !important;
             border-color: #354049 !important;
             color: #ffffff !important;
-        }
-
-        /* Collapse button inside expanded sidebar */
-        [data-testid="stSidebarCollapseButton"] button {
-            background: #14191c !important;
-            border: 1px solid #232c32 !important;
-            border-radius: 8px !important;
-            color: #9ba8b5 !important;
-            width: 32px !important;
-            height: 32px !important;
-            min-height: 32px !important;
-            padding: 0 !important;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            box-shadow: none !important;
-            z-index: 10 !important;
-            cursor: pointer !important;
-            pointer-events: auto !important;
-            transition: background 0.15s ease, border-color 0.15s ease !important;
-        }
-
-        [data-testid="stSidebarCollapseButton"] button:hover {
-            background: #1c2227 !important;
-            border-color: #354049 !important;
-            color: #ffffff !important;
+            transform: scale(1.03) !important;
         }
 
         /* Completely hide any inner default icons/spans/svgs */
@@ -252,20 +218,20 @@ def main() -> None:
             display: none !important;
         }
 
-        /* Clean 3-bar hamburger icon */
+        /* Single 3-bar hamburger icon */
         [data-testid="stSidebarCollapseButton"] button::after,
         [data-testid="stSidebarCollapsedControl"] button::after {
             content: "";
             display: block;
-            width: 15px;
+            width: 16px;
             height: 11px;
             background: linear-gradient(
                 to bottom,
-                #9ba8b5 0px, #9ba8b5 2px,
-                transparent 2px, transparent 4.5px,
-                #9ba8b5 4.5px, #9ba8b5 6.5px,
-                transparent 6.5px, transparent 9px,
-                #9ba8b5 9px, #9ba8b5 11px
+                #9ba8b5 0px, #9ba8b5 2.2px,
+                transparent 2.2px, transparent 4.4px,
+                #9ba8b5 4.4px, #9ba8b5 6.6px,
+                transparent 6.6px, transparent 8.8px,
+                #9ba8b5 8.8px, #9ba8b5 11px
             );
         }
 
@@ -273,12 +239,25 @@ def main() -> None:
         [data-testid="stSidebarCollapsedControl"] button:hover::after {
             background: linear-gradient(
                 to bottom,
-                #ffffff 0px, #ffffff 2px,
-                transparent 2px, transparent 4.5px,
-                #ffffff 4.5px, #ffffff 6.5px,
-                transparent 6.5px, transparent 9px,
-                #ffffff 9px, #ffffff 11px
+                #ffffff 0px, #ffffff 2.2px,
+                transparent 2.2px, transparent 4.4px,
+                #ffffff 4.4px, #ffffff 6.6px,
+                transparent 6.6px, transparent 8.8px,
+                #ffffff 8.8px, #ffffff 11px
             );
+        }
+
+        [data-testid="stSidebarCollapsedControl"] {
+            position: fixed !important;
+            top: 1.25rem !important;
+            left: 1.25rem !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            z-index: 999 !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            background: transparent !important;
         }
 
         /* Top Left Corner Brand Lockup */
@@ -536,57 +515,16 @@ def main() -> None:
             color: #ffffff !important;
         }
 
-        /* Center Section: Input Form Fixed to the Bottom */
+        /* Center Section: Input Form (100% width matching cards) */
         [data-testid="stForm"] {
-            position: fixed !important;
-            bottom: 1.25rem !important;
-            left: 50% !important;
-            transform: translateX(-50%) !important;
-            width: min(780px, calc(100vw - 2rem)) !important;
-            max-width: 780px !important;
-            z-index: 999 !important;
-            background: #13181b !important;
             border: 1px solid var(--border-card) !important;
             border-radius: 16px !important;
+            background: var(--bg-card) !important;
             padding: 6px 8px 6px 14px !important;
-            box-shadow: 0 12px 36px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(255, 255, 255, 0.05) !important;
-            margin: 0 !important;
-            box-sizing: border-box !important;
-            transition: left 0.2s ease, max-width 0.2s ease, width 0.2s ease !important;
-        }
-
-        /* Adjust fixed input position on desktop when sidebar is expanded */
-        @media (min-width: 769px) {
-            body:has([data-testid="stSidebar"][aria-expanded="true"]) [data-testid="stForm"],
-            [data-testid="stApp"]:has([data-testid="stSidebar"][aria-expanded="true"]) [data-testid="stForm"] {
-                left: calc(50% + 10.5rem) !important;
-                width: min(780px, calc(100vw - 23rem)) !important;
-                max-width: min(780px, calc(100vw - 23rem)) !important;
-            }
-        }
-
-        /* Ensure input text field and submit button stay side-by-side on all viewports */
-        [data-testid="stForm"] [data-testid="stHorizontalBlock"] {
-            display: flex !important;
-            flex-direction: row !important;
-            align-items: center !important;
-            gap: 8px !important;
-            flex-wrap: nowrap !important;
+            box-shadow: none !important;
+            margin-top: 1.5rem !important;
             width: 100% !important;
-        }
-
-        [data-testid="stForm"] [data-testid="stColumn"] {
-            min-width: 0 !important;
-        }
-
-        [data-testid="stForm"] [data-testid="stColumn"]:first-child {
-            flex: 1 1 auto !important;
-            width: auto !important;
-        }
-
-        [data-testid="stForm"] [data-testid="stColumn"]:last-child {
-            flex: 0 0 auto !important;
-            width: auto !important;
+            box-sizing: border-box !important;
         }
 
         [data-testid="stTextInputRootElement"] > div,
@@ -602,7 +540,7 @@ def main() -> None:
             padding: 0 !important;
             color: #f0f6fc !important;
             background: transparent !important;
-            font-size: 16px !important; /* 16px prevents iOS Safari auto-zoom on mobile */
+            font-size: 0.95rem !important;
             caret-color: #00d09c !important;
         }
 
@@ -734,110 +672,14 @@ def main() -> None:
             font-size: 0.84rem !important;
         }
 
-        /* Mobile & Tablet Responsiveness */
-        @media (max-width: 768px) {
+        @media (max-width: 640px) {
             .block-container {
-                padding-top: 3.75rem !important;
-                padding-bottom: 95px !important;
+                padding-top: 2rem !important;
                 padding-left: 1rem !important;
                 padding-right: 1rem !important;
             }
-
-            /* Fixed bottom input bar on mobile */
-            [data-testid="stForm"] {
-                bottom: 0.75rem !important;
-                left: 0.75rem !important;
-                right: 0.75rem !important;
-                transform: none !important;
-                width: calc(100% - 1.5rem) !important;
-                max-width: none !important;
-                padding: 5px 6px 5px 12px !important;
-                border-radius: 14px !important;
-                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.85) !important;
-            }
-
-            .st-key-ask_button button {
-                min-height: 42px !important;
-                padding: 0 10px !important;
-                font-size: 0.86rem !important;
-            }
-
-            .st-key-ask_button button p {
-                font-size: 0.86rem !important;
-            }
-
-            /* Sidebar Hamburger in top-left */
-            [data-testid="stSidebarCollapsedControl"] {
-                top: 0.75rem !important;
-                left: 0.75rem !important;
-            }
-
-            [data-testid="stSidebarCollapsedControl"] button {
-                width: 36px !important;
-                height: 36px !important;
-                min-height: 36px !important;
-            }
-
-            /* Stack example questions vertically on mobile */
-            [data-testid="stAppViewContainer"] [data-testid="stHorizontalBlock"]:has(.st-key-example_0) {
-                display: flex !important;
-                flex-direction: column !important;
-                gap: 8px !important;
-            }
-
-            [data-testid="stAppViewContainer"] [data-testid="stHorizontalBlock"]:has(.st-key-example_0) > [data-testid="stColumn"] {
-                width: 100% !important;
-                max-width: 100% !important;
-                flex: 1 1 100% !important;
-            }
-
-            .st-key-example_0 button,
-            .st-key-example_1 button,
-            .st-key-example_2 button {
-                min-height: auto !important;
-                padding: 0.85rem 1rem !important;
-                border-radius: 12px !important;
-            }
-
             .hero-heading {
-                font-size: 1.85rem !important;
-                margin-bottom: 1.15rem !important;
-                line-height: 1.25 !important;
-            }
-
-            .facts-banner {
-                font-size: 0.84rem !important;
-                padding: 0.75rem 0.95rem !important;
-                margin-bottom: 1.5rem !important;
-            }
-
-            .user-query-container {
-                padding: 0.85rem 1rem !important;
-            }
-
-            .user-query-text {
-                font-size: 0.98rem !important;
-            }
-
-            [data-testid="stVerticalBlockBorderWrapper"] {
-                padding: 1.1rem 1.25rem !important;
-            }
-
-            [data-testid="stSidebar"] {
-                width: min(85vw, 320px) !important;
-                max-width: 320px !important;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .hero-heading {
-                font-size: 1.6rem !important;
-            }
-
-            [data-testid="stForm"] {
-                left: 0.5rem !important;
-                right: 0.5rem !important;
-                width: calc(100% - 1rem) !important;
+                font-size: 2rem !important;
             }
         }
         </style>

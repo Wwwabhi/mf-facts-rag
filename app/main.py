@@ -126,8 +126,7 @@ def main() -> None:
 
         .center-brand-logo {
             width: 40px;
-            height: 40px;
-            border-radius: 50%;
+            height: 20px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -395,18 +394,18 @@ def main() -> None:
         st.error(f"Unable to prepare the local knowledge index: {exc}")
         return
 
-    # Centered Groww Logo Lockup above the title
+    # Centered Groww Logo Lockup above the title (cropped horizontally into a semicircle)
     st.markdown(
         """
         <div class="center-brand-wrapper">
             <div class="center-brand-logo">
-                <svg width="40" height="40" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <clipPath id="groww-circle-clip">
-                        <circle cx="50" cy="50" r="50"/>
+                <svg width="40" height="20" viewBox="0 0 100 50" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <clipPath id="groww-semicircle-clip">
+                        <path d="M 0 50 A 50 50 0 0 1 100 50 Z"/>
                     </clipPath>
-                    <g clip-path="url(#groww-circle-clip)">
-                        <rect width="100" height="100" fill="#5367FF"/>
-                        <path d="M-5 105 L-5 72 L42 56 L62 66 L105 44 L105 105 Z" fill="#00D09C"/>
+                    <g clip-path="url(#groww-semicircle-clip)">
+                        <rect width="100" height="50" fill="#5367FF"/>
+                        <path d="M-5 55 L-5 32 L40 25 L60 30 L105 18 L105 55 Z" fill="#00D09C"/>
                     </g>
                 </svg>
             </div>

@@ -103,7 +103,7 @@ def main() -> None:
             st.session_state["question_input"] = requested_q
             st.session_state["active_chat_id"] = None
 
-    st.markdown(
+    st.html(
         """
         <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
@@ -803,6 +803,11 @@ def main() -> None:
             }
         }
         </style>
+        """
+    )
+
+    st.html(
+        """
         <aside class="sidebar-rail" aria-label="Quick navigation rail">
             <div class="rail-logo-wrapper" title="Groww Mutual Fund Facts">
                 <a href="?new_chat=1" class="rail-logo-link" target="_self">
@@ -868,8 +873,7 @@ def main() -> None:
                 </svg>
             </div>
         </aside>
-        """,
-        unsafe_allow_html=True,
+        """
     )
 
     with st.sidebar:
@@ -935,7 +939,7 @@ def main() -> None:
                 )
 
         chat_list_html = f'<div class="sidebar-chat-list">{"".join(history_items_html)}</div>'
-        st.markdown(brand_html + chat_list_html, unsafe_allow_html=True)
+        st.html(brand_html + chat_list_html)
 
     try:
         _prepare_index(str(settings.CHROMA_DB_PATH))

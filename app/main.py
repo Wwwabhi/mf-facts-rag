@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import html
 import sys
 from pathlib import Path
 
@@ -11,7 +10,6 @@ if str(PROJECT_ROOT) not in sys.path:
 import streamlit as st
 
 from src.config import settings
-from src.guardrails.answer_policy import GuardrailDecision
 from src.guardrails.refusal_templates import FACTS_ONLY_DISCLAIMER
 from src.llm.groq_client import GroqRequestError
 from src.retrieval.query_pipeline import QueryResponse, answer_question
@@ -32,29 +30,6 @@ def _prepare_index(persist_directory: str) -> dict[str, object]:
 
 def _select_example(question: str) -> None:
     st.session_state["question_input"] = question
-    st.session_state["active_chat_id"] = None
-
-
-def _generate_chat_title(question: str) -> str:
-    clean = question.strip().rstrip("?").strip()
-    for prefix in (
-        "What is the exit load for ",
-        "What is the lock-in period for ",
-        "What is the expense ratio of ",
-        "What is the NAV of ",
-        "Should I invest in ",
-        "How can I download a ",
-        "Can I invest in ",
-        "What is ",
-        "How to ",
-    ):
-        if clean.lower().startswith(prefix.lower()):
-            clean = clean[len(prefix):].strip()
-            break
-    clean = clean[:32].strip()
-    if not clean:
-        clean = "Mutual Fund Query"
-    return clean[0].upper() + clean[1:]
 
 
 def _display_response(response: QueryResponse) -> None:
@@ -81,29 +56,7 @@ def main() -> None:
         initial_sidebar_state="collapsed",
     )
 
-    if "chat_history" not in st.session_state:
-        st.session_state["chat_history"] = []
-    if "active_chat_id" not in st.session_state:
-        st.session_state["active_chat_id"] = None
-
-    # Handle query param actions
-    if "new_chat" in st.query_params:
-        st.session_state["active_chat_id"] = None
-        st.session_state["question_input"] = ""
-        st.query_params.clear()
-    elif "chat_id" in st.query_params:
-        target_id = st.query_params.get("chat_id")
-        matching = next((c for c in st.session_state["chat_history"] if c["id"] == target_id), None)
-        if matching:
-            st.session_state["active_chat_id"] = target_id
-            st.session_state["question_input"] = matching["question"]
-    elif "q" in st.query_params:
-        requested_q = st.query_params.get("q")
-        if requested_q and ("question_input" not in st.session_state or not st.session_state["question_input"]):
-            st.session_state["question_input"] = requested_q
-            st.session_state["active_chat_id"] = None
-
-    st.html(
+    st.markdown(
         """
         <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
@@ -128,7 +81,7 @@ def main() -> None:
             --btn-dark-hover: #2b3339;
         }
 
-        /* Global resets & background */
+        /* Global resets & dark theme background */
         html, body, [data-testid="stApp"], [data-testid="stAppViewContainer"] {
             background: var(--bg-main) !important;
             color: var(--text-primary);
@@ -139,7 +92,9 @@ def main() -> None:
             background: transparent !important;
         }
 
-        /* Hide Streamlit Deploy button, decoration line, and toolbar */
+        /* Completely remove the sidebar and any sidebar toggle buttons */
+        [data-testid="stSidebar"],
+        [data-testid="stSidebarCollapsedControl"],
         .stAppDeployButton,
         [data-testid="stStatusWidget"],
         [data-testid="stToolbar"],
@@ -150,254 +105,28 @@ def main() -> None:
             visibility: hidden !important;
         }
 
-        /* Center content layout with strict unified alignment */
+        /* Center content layout */
         .block-container {
             max-width: 780px !important;
-            padding-top: 3.5rem !important;
+            padding-top: 4.5rem !important;
             padding-bottom: 4rem !important;
             padding-left: 1.5rem !important;
             padding-right: 1.5rem !important;
             margin: 0 auto !important;
         }
 
-        @media (min-width: 769px) {
-            [data-testid="stApp"]:has([data-testid="stSidebar"][aria-expanded="false"]) .block-container,
-            body:has([data-testid="stSidebar"][aria-expanded="false"]) .block-container {
-                margin-left: max(68px, calc(50vw - 390px)) !important;
-            }
-        }
-
-        /* Sidebar container */
-        [data-testid="stSidebar"] {
-            background-color: #0e1215 !important;
-            border-right: 1px solid #1a2025 !important;
-        }
-
-        /* Sidebar Header and Brand alignment at top left */
-        [data-testid="stSidebarHeader"] {
-            display: flex !important;
-            align-items: center !important;
-            justify-content: flex-end !important;
-            padding: 0.85rem 1rem 0 1rem !important;
-            height: 48px !important;
-            min-height: 48px !important;
-            position: relative !important;
-            background: transparent !important;
-        }
-
-        [data-testid="stSidebarUserContent"] {
-            padding: 0 1rem 1.5rem 1rem !important;
-            margin-top: -48px !important;
-        }
-
-        /* Left Collapsed Rail & Sidebar Toggle */
-        .sidebar-rail {
-            position: fixed !important;
-            top: 0 !important;
-            left: 0 !important;
-            bottom: 0 !important;
-            width: 58px !important;
-            background-color: #0e1215 !important;
-            border-right: 1px solid #1a2025 !important;
-            z-index: 99 !important;
-            display: flex !important;
-            flex-direction: column !important;
-            align-items: center !important;
-            padding: 16px 0 20px 0 !important;
-            gap: 14px !important;
-            box-sizing: border-box !important;
-            user-select: none !important;
-        }
-
-        /* Hide rail when Streamlit sidebar is expanded */
-        [data-testid="stApp"]:has([data-testid="stSidebar"][aria-expanded="true"]) .sidebar-rail {
-            display: none !important;
-        }
-
-        .rail-logo-wrapper {
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            width: 36px !important;
-            height: 36px !important;
-            margin-bottom: 2px !important;
-        }
-
-        .rail-logo-link {
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            text-decoration: none !important;
-        }
-
-        /* Circular New Chat button in rail matching Image 1 */
-        .rail-btn-plus {
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            width: 38px !important;
-            height: 38px !important;
-            border-radius: 50% !important;
-            background: #1c2328 !important;
-            border: 1px solid #273138 !important;
-            color: #dce3eb !important;
-            text-decoration: none !important;
-            transition: all 0.15s ease !important;
-        }
-
-        .rail-btn-plus:hover {
-            background: #252e35 !important;
-            border-color: #384652 !important;
-            color: #ffffff !important;
-            transform: scale(1.05) !important;
-        }
-
-        /* Individual Rail Icons matching Image 1 */
-        .rail-item {
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            width: 36px !important;
-            height: 36px !important;
-            border-radius: 8px !important;
-            color: #717e8c !important;
-            cursor: pointer !important;
-            transition: color 0.15s ease, background 0.15s ease !important;
-            text-decoration: none !important;
-        }
-
-        .rail-item:hover {
-            color: #ffffff !important;
-            background: #161c20 !important;
-        }
-
-        .rail-item.active {
-            color: #00d09c !important;
-        }
-
-        /* Placeholder slot for Streamlit expand button in rail */
-        .rail-toggle-slot {
-            width: 36px !important;
-            height: 36px !important;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            color: #717e8c !important;
-        }
-
-        /* Streamlit Collapse / Expand Toggle Buttons (Panel-Left icon matching Image 1 & 2) */
-        [data-testid="stSidebarCollapseButton"] button,
-        [data-testid="stSidebarCollapsedControl"] button {
-            background: transparent !important;
-            border: 1px solid transparent !important;
-            border-radius: 8px !important;
-            color: #8b99a6 !important;
-            width: 36px !important;
-            height: 36px !important;
-            min-height: 36px !important;
-            min-width: 36px !important;
-            padding: 0 !important;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            box-shadow: none !important;
-            cursor: pointer !important;
-            transition: all 0.15s ease !important;
-        }
-
-        [data-testid="stSidebarCollapseButton"] button:hover,
-        [data-testid="stSidebarCollapsedControl"] button:hover {
-            background: #182025 !important;
-            border-color: #27333c !important;
-            color: #ffffff !important;
-        }
-
-        /* Completely hide any inner default icons/spans/svgs */
-        [data-testid="stSidebarCollapseButton"] button *,
-        [data-testid="stSidebarCollapsedControl"] button * {
-            display: none !important;
-        }
-
-        /* Panel-Left Icon (rounded rectangle split vertically, matching Image 1 item 5 & Image 2 top right) */
-        [data-testid="stSidebarCollapseButton"] button::after,
-        [data-testid="stSidebarCollapsedControl"] button::after {
-            content: "";
-            display: block;
-            width: 19px;
-            height: 19px;
-            background-color: currentColor;
-            -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect width='18' height='18' x='3' y='3' rx='3'/%3E%3Cline x1='9' y1='3' x2='9' y2='21'/%3E%3C/svg%3E") no-repeat center;
-            mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect width='18' height='18' x='3' y='3' rx='3'/%3E%3Cline x1='9' y1='3' x2='9' y2='21'/%3E%3C/svg%3E") no-repeat center;
-            -webkit-mask-size: contain;
-            mask-size: contain;
-            transition: background-color 0.15s ease;
-        }
-
-        /* Align expand button directly in the 5th icon slot of the rail on desktop */
-        @media (min-width: 769px) {
-            [data-testid="stSidebarCollapsedControl"] {
-                position: fixed !important;
-                top: 218px !important;
-                left: 11px !important;
-                width: 36px !important;
-                height: 36px !important;
-                z-index: 102 !important;
-                display: flex !important;
-                align-items: center !important;
-                justify-content: center !important;
-                background: transparent !important;
-                border: none !important;
-                padding: 0 !important;
-                visibility: visible !important;
-                opacity: 1 !important;
-            }
-        }
-
-        /* Mobile Viewport: Floating toggle button */
-        @media (max-width: 768px) {
-            .sidebar-rail {
-                display: none !important;
-            }
-
-            [data-testid="stSidebarCollapsedControl"] {
-                position: fixed !important;
-                top: 0.85rem !important;
-                left: 0.85rem !important;
-                width: 36px !important;
-                height: 36px !important;
-                z-index: 999 !important;
-                display: flex !important;
-                align-items: center !important;
-                justify-content: center !important;
-                background: #14191c !important;
-                border: 1px solid #232c32 !important;
-                border-radius: 8px !important;
-            }
-
-            [data-testid="stSidebarCollapsedControl"] button {
-                width: 36px !important;
-                height: 36px !important;
-            }
-        }
-
-        /* Top Left Corner Brand Lockup */
-        .sidebar-brand-wrapper {
-            display: flex !important;
-            align-items: center !important;
-            height: 48px !important;
-            padding-right: 42px !important;
-            margin-bottom: 1.25rem !important;
-        }
-
-        .sidebar-brand {
+        /* Center Groww Brand Lockup */
+        .center-brand-wrapper {
             display: flex;
             align-items: center;
-            gap: 10px;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 1.25rem;
         }
 
-        .sidebar-logo {
-            width: 28px;
-            height: 28px;
+        .center-brand-logo {
+            width: 40px;
+            height: 40px;
             border-radius: 50%;
             display: flex;
             align-items: center;
@@ -406,140 +135,18 @@ def main() -> None:
             overflow: hidden;
         }
 
-        .sidebar-brand-text {
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            line-height: 1.15;
-        }
-
-        .groww-brand-name {
+        .center-brand-name {
             color: #ffffff;
-            font-size: 1.05rem;
+            font-size: 2.15rem;
             font-weight: 700;
-            letter-spacing: -0.02em;
+            letter-spacing: -0.03em;
+            line-height: 1;
         }
 
-        .brand-sub-title {
-            color: #8a96a1;
-            font-size: 0.72rem;
-            font-weight: 500;
-            letter-spacing: 0.01em;
-        }
-
-        /* New Chat Button */
-        .new-chat-button {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            width: 100%;
-            height: 44px;
-            padding: 0 12px;
-            background: #181e23;
-            border: 1px solid #232c33;
-            border-radius: 12px;
-            color: #f0f6fc !important;
-            text-decoration: none !important;
-            font-size: 0.92rem;
-            font-weight: 500;
-            box-sizing: border-box;
-            transition: background 0.15s ease, border-color 0.15s ease;
-            margin-bottom: 1.75rem;
-        }
-
-        .new-chat-button:hover {
-            background: #1e262c;
-            border-color: #2f3b45;
-            color: #ffffff !important;
-        }
-
-        .new-chat-icon {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 22px;
-            height: 22px;
-            background: #00d09c;
-            border-radius: 6px;
-            color: #0b1512;
-            font-weight: 700;
-            flex-shrink: 0;
-        }
-
-        /* Previous Chats Section */
-        .sidebar-section-header {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            color: #657382;
-            font-size: 0.72rem;
-            font-weight: 600;
-            letter-spacing: 0.06em;
-            margin-bottom: 0.85rem;
-        }
-
-        .sidebar-section-header svg {
-            color: #657382;
-        }
-
-        .sidebar-chat-list {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-        }
-
-        .sidebar-chat-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 8px 10px;
-            border-radius: 8px;
-            color: #9ba8b5 !important;
-            text-decoration: none !important;
-            font-size: 0.89rem;
-            font-weight: 400;
-            transition: background 0.12s ease, color 0.12s ease;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .sidebar-chat-item svg {
-            color: #6d7b88;
-            flex-shrink: 0;
-            transition: color 0.12s ease;
-        }
-
-        .sidebar-chat-item:hover {
-            background: #161c21;
-            color: #f0f6fc !important;
-        }
-
-        .sidebar-chat-item:hover svg {
-            color: #9ba8b5;
-        }
-
-        .sidebar-chat-item.active {
-            background: #1c2329;
-            color: #ffffff !important;
-            font-weight: 500;
-        }
-
-        .sidebar-chat-item.active svg {
-            color: #00d09c;
-        }
-
-        .sidebar-empty-state {
-            color: #55606d;
-            font-size: 0.82rem;
-            padding: 8px 10px;
-            font-style: italic;
-        }
-
-        /* Center Section: Hero Title */
+        /* Hero Heading */
         .hero-heading {
             color: #ffffff !important;
-            font-size: 2.75rem !important;
+            font-size: 2.65rem !important;
             font-weight: 700 !important;
             text-align: center !important;
             margin: 0 0 1.5rem 0 !important;
@@ -547,7 +154,7 @@ def main() -> None:
             line-height: 1.2 !important;
         }
 
-        /* Center Section: Facts Disclaimer Banner (100% width matching cards) */
+        /* Facts Disclaimer Banner (100% width matching cards) */
         .facts-banner {
             display: flex;
             align-items: center;
@@ -571,7 +178,7 @@ def main() -> None:
             flex-shrink: 0;
         }
 
-        /* Center Section: Example questions label */
+        /* Example questions section label */
         .section-label {
             color: var(--text-muted);
             font-size: 0.84rem;
@@ -635,7 +242,7 @@ def main() -> None:
             color: #ffffff !important;
         }
 
-        /* Center Section: Input Form (100% width matching cards) */
+        /* Input Form (100% width matching cards) */
         [data-testid="stForm"] {
             border: 1px solid var(--border-card) !important;
             border-radius: 16px !important;
@@ -713,34 +320,6 @@ def main() -> None:
             color: #ffffff !important;
         }
 
-        /* User Active Question Card */
-        .user-query-container {
-            width: 100% !important;
-            box-sizing: border-box !important;
-            background: #13181b;
-            border: 1px solid var(--border-card);
-            border-radius: 14px;
-            padding: 1rem 1.25rem;
-            margin-bottom: 1.25rem;
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-        }
-
-        .user-query-badge {
-            color: var(--emerald-primary);
-            font-size: 0.72rem;
-            font-weight: 700;
-            letter-spacing: 0.06em;
-        }
-
-        .user-query-text {
-            color: #ffffff;
-            font-size: 1.05rem;
-            font-weight: 500;
-            line-height: 1.4;
-        }
-
         /* Response Container (100% width matching input) */
         [data-testid="stVerticalBlockBorderWrapper"] {
             width: 100% !important;
@@ -801,145 +380,14 @@ def main() -> None:
             .hero-heading {
                 font-size: 2rem !important;
             }
+            .center-brand-name {
+                font-size: 1.75rem !important;
+            }
         }
         </style>
-        """
+        """,
+        unsafe_allow_html=True,
     )
-
-    st.html(
-        """
-        <aside class="sidebar-rail" aria-label="Quick navigation rail">
-            <div class="rail-logo-wrapper" title="Groww Mutual Fund Facts">
-                <a href="?new_chat=1" class="rail-logo-link" target="_self">
-                    <svg width="28" height="28" viewBox="0 0 100 100" fill="none">
-                        <clipPath id="rail-groww-clip"><circle cx="50" cy="50" r="50"/></clipPath>
-                        <g clip-path="url(#rail-groww-clip)">
-                            <rect width="100" height="100" fill="#5367FF"/>
-                            <path d="M-5 105 L-5 72 L42 56 L62 66 L105 44 L105 105 Z" fill="#00D09C"/>
-                        </g>
-                    </svg>
-                </a>
-            </div>
-
-            <a href="?new_chat=1" class="rail-btn-plus" title="New" target="_self">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="12" y1="5" x2="12" y2="19"></line>
-                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                </svg>
-            </a>
-
-            <div class="rail-item active" title="Chat Assistant">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                    <rect width="18" height="14" x="3" y="3" rx="2"></rect>
-                    <line x1="8" y1="21" x2="16" y2="21"></line>
-                    <line x1="12" y1="17" x2="12" y2="21"></line>
-                    <line x1="7" y1="8" x2="7.01" y2="8"></line>
-                    <line x1="17" y1="8" x2="17.01" y2="8"></line>
-                    <line x1="10" y1="12" x2="14" y2="12"></line>
-                </svg>
-            </div>
-
-            <div class="rail-item" title="Quick Facts">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="9"></circle>
-                    <polyline points="12 7 12 12 15 15"></polyline>
-                    <path d="M19 16l-3 5h4l-2 3" stroke-width="1.8"></path>
-                </svg>
-            </div>
-
-            <div class="rail-toggle-slot" title="Expand sidebar">
-                <!-- Overlayed by stSidebarCollapsedControl button -->
-            </div>
-
-            <div class="rail-item" title="Guardrails & Settings">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
-                    <circle cx="12" cy="12" r="3"></circle>
-                </svg>
-            </div>
-
-            <div class="rail-item" title="Verified Sources">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"></path>
-                    <path d="M2 10h20"></path>
-                </svg>
-            </div>
-
-            <div class="rail-item" title="Chat History">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
-                    <path d="M3 3v5h5"></path>
-                    <path d="M12 7v5l4 2"></path>
-                </svg>
-            </div>
-        </aside>
-        """
-    )
-
-    with st.sidebar:
-        brand_html = """
-        <div class="sidebar-brand-wrapper">
-            <div class="sidebar-brand">
-                <div class="sidebar-logo">
-                    <svg width="28" height="28" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <clipPath id="groww-circle-clip">
-                            <circle cx="50" cy="50" r="50"/>
-                        </clipPath>
-                        <g clip-path="url(#groww-circle-clip)">
-                            <rect width="100" height="100" fill="#5367FF"/>
-                            <path d="M-5 105 L-5 72 L42 56 L62 66 L105 44 L105 105 Z" fill="#00D09C"/>
-                        </g>
-                    </svg>
-                </div>
-                <div class="sidebar-brand-text">
-                    <span class="groww-brand-name">Groww</span>
-                    <span class="brand-sub-title">Mutual Fund Facts</span>
-                </div>
-            </div>
-        </div>
-
-        <a href="?new_chat=1" class="new-chat-button" target="_self">
-            <div class="new-chat-icon">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="12" y1="5" x2="12" y2="19"></line>
-                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                </svg>
-            </div>
-            <span>New</span>
-        </a>
-
-        <div class="sidebar-section-header">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="10"></circle>
-                <polyline points="12 6 12 12 16 14"></polyline>
-            </svg>
-            <span>PREVIOUS CHATS</span>
-        </div>
-        """
-
-        history_items_html = []
-        if not st.session_state["chat_history"]:
-            history_items_html.append(
-                '<div class="sidebar-empty-state">No previous chats yet</div>'
-            )
-        else:
-            active_id = st.session_state["active_chat_id"]
-            for chat in st.session_state["chat_history"]:
-                is_active = (chat["id"] == active_id)
-                active_class = "active" if is_active else ""
-                escaped_title = html.escape(chat["title"])
-                escaped_id = html.escape(chat["id"])
-                history_items_html.append(
-                    f'<a href="?chat_id={escaped_id}" class="sidebar-chat-item {active_class}" target="_self">'
-                    '<svg class="chat-item-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'
-                    '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>'
-                    '</svg>'
-                    f'<span>{escaped_title}</span>'
-                    '</a>'
-                )
-
-        chat_list_html = f'<div class="sidebar-chat-list">{"".join(history_items_html)}</div>'
-        st.html(brand_html + chat_list_html)
 
     try:
         _prepare_index(str(settings.CHROMA_DB_PATH))
@@ -947,62 +395,60 @@ def main() -> None:
         st.error(f"Unable to prepare the local knowledge index: {exc}")
         return
 
-    active_chat = None
-    if st.session_state["active_chat_id"]:
-        active_chat = next((c for c in st.session_state["chat_history"] if c["id"] == st.session_state["active_chat_id"]), None)
+    # Centered Groww Logo Lockup above the title
+    st.markdown(
+        """
+        <div class="center-brand-wrapper">
+            <div class="center-brand-logo">
+                <svg width="40" height="40" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <clipPath id="groww-circle-clip">
+                        <circle cx="50" cy="50" r="50"/>
+                    </clipPath>
+                    <g clip-path="url(#groww-circle-clip)">
+                        <rect width="100" height="100" fill="#5367FF"/>
+                        <path d="M-5 105 L-5 72 L42 56 L62 66 L105 44 L105 105 Z" fill="#00D09C"/>
+                    </g>
+                </svg>
+            </div>
+            <span class="center-brand-name">Groww</span>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
-    if active_chat:
-        # Display selected previous conversation
-        st.markdown(
-            f'<div class="user-query-container">'
-            f'<span class="user-query-badge">QUESTION</span>'
-            f'<div class="user-query-text">{html.escape(active_chat["question"])}</div>'
-            f'</div>',
-            unsafe_allow_html=True,
-        )
-        saved_response = QueryResponse(
-            answer=active_chat["answer"],
-            source_url=active_chat.get("source_url"),
-            source_date=active_chat.get("source_date"),
-            retrieved_chunks=[],
-            decision=GuardrailDecision(
-                allowed=active_chat.get("allowed", True),
-                category="history",
-                reason="history",
-                message=active_chat.get("answer"),
-            ),
-        )
-        _display_response(saved_response)
-    else:
-        # Display new chat welcome view
-        st.markdown(
-            '<h1 class="hero-heading">Welcome to Mutual Fund Facts</h1>',
-            unsafe_allow_html=True,
-        )
-        st.markdown(
-            '<div class="facts-banner">'
-            '<div class="facts-icon">'
-            '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">'
-            '<circle cx="12" cy="12" r="10"></circle>'
-            '<line x1="12" y1="16" x2="12" y2="12"></line>'
-            '<line x1="12" y1="8" x2="12.01" y2="8"></line>'
-            '</svg>'
-            '</div>'
-            f"<span>{FACTS_ONLY_DISCLAIMER}</span></div>",
-            unsafe_allow_html=True,
+    # Hero Title
+    st.markdown(
+        '<h1 class="hero-heading">Welcome to Mutual Fund Facts</h1>',
+        unsafe_allow_html=True,
+    )
+
+    # Facts Disclaimer Banner
+    st.markdown(
+        '<div class="facts-banner">'
+        '<div class="facts-icon">'
+        '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">'
+        '<circle cx="12" cy="12" r="10"></circle>'
+        '<line x1="12" y1="16" x2="12" y2="12"></line>'
+        '<line x1="12" y1="8" x2="12.01" y2="8"></line>'
+        '</svg>'
+        '</div>'
+        f"<span>{FACTS_ONLY_DISCLAIMER}</span></div>",
+        unsafe_allow_html=True,
+    )
+
+    # Example Questions
+    st.markdown('<div class="section-label">Example questions</div>', unsafe_allow_html=True)
+    columns = st.columns(3)
+    for index, question_text in enumerate(EXAMPLE_QUESTIONS):
+        columns[index].button(
+            question_text,
+            key=f"example_{index}",
+            use_container_width=True,
+            on_click=_select_example,
+            args=(question_text,),
         )
 
-        st.markdown('<div class="section-label">Example questions</div>', unsafe_allow_html=True)
-        columns = st.columns(3)
-        for index, question_text in enumerate(EXAMPLE_QUESTIONS):
-            columns[index].button(
-                question_text,
-                key=f"example_{index}",
-                use_container_width=True,
-                on_click=_select_example,
-                args=(question_text,),
-            )
-
+    # Input Form
     with st.form("question_form"):
         input_column, send_column = st.columns([6, 1])
         question = input_column.text_input(
@@ -1025,18 +471,6 @@ def main() -> None:
             try:
                 with st.spinner("Checking approved sources..."):
                     response = answer_question(question.strip())
-                
-                chat_entry = {
-                    "id": str(len(st.session_state["chat_history"]) + 1),
-                    "question": question.strip(),
-                    "title": _generate_chat_title(question.strip()),
-                    "answer": response.answer,
-                    "source_url": response.source_url,
-                    "source_date": response.source_date,
-                    "allowed": response.decision.allowed,
-                }
-                st.session_state["chat_history"].insert(0, chat_entry)
-                st.session_state["active_chat_id"] = chat_entry["id"]
                 _display_response(response)
             except GroqRequestError as exc:
                 st.error(str(exc))

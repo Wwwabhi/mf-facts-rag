@@ -115,33 +115,6 @@ def main() -> None:
             margin: 0 auto !important;
         }
 
-        /* Center Groww Brand Lockup */
-        .center-brand-wrapper {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 12px;
-            margin-bottom: 1.25rem;
-        }
-
-        .center-brand-logo {
-            width: 40px;
-            height: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-            overflow: hidden;
-        }
-
-        .center-brand-name {
-            color: #ffffff;
-            font-size: 2.15rem;
-            font-weight: 700;
-            letter-spacing: -0.03em;
-            line-height: 1;
-        }
-
         /* Hero Heading */
         .hero-heading {
             color: #ffffff !important;
@@ -379,9 +352,6 @@ def main() -> None:
             .hero-heading {
                 font-size: 2rem !important;
             }
-            .center-brand-name {
-                font-size: 1.75rem !important;
-            }
         }
         </style>
         """,
@@ -393,27 +363,6 @@ def main() -> None:
     except Exception as exc:
         st.error(f"Unable to prepare the local knowledge index: {exc}")
         return
-
-    # Centered Groww Logo Lockup above the title (cropped horizontally into a semicircle)
-    st.markdown(
-        """
-        <div class="center-brand-wrapper">
-            <div class="center-brand-logo">
-                <svg width="40" height="20" viewBox="0 0 100 50" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <clipPath id="groww-semicircle-clip">
-                        <path d="M 0 50 A 50 50 0 0 1 100 50 Z"/>
-                    </clipPath>
-                    <g clip-path="url(#groww-semicircle-clip)">
-                        <rect width="100" height="50" fill="#5367FF"/>
-                        <path d="M-5 55 L-5 32 L40 25 L60 30 L105 18 L105 55 Z" fill="#00D09C"/>
-                    </g>
-                </svg>
-            </div>
-            <span class="center-brand-name">Groww</span>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
 
     # Hero Title
     st.markdown(

@@ -6,3 +6,4 @@ __pycache__/
 *.egg-info/
 chroma_db/
 .DS_Store
+.streamlit/credentials.toml

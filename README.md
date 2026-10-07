@@ -2,6 +2,8 @@
 
 A facts-only mutual-fund FAQ assistant in a Groww product context. This repository currently covers selected HDFC Asset Management Company schemes; it is not an integration with Groww accounts or services.
 
+Live Demo - https://mf-facts-rag-ls8ctphagmcvyenzujm8mv.streamlit.app/
+
 ## Coverage
 
 The corpus contains **22 approved source records**: 20 HDFC-hosted pages/documents, one SEBI SID registry entry, and one AMFI NAV source. Sources are limited to official HDFC AMC, SEBI, and AMFI URLs. The registry is [data/mf_rag_sources.csv](data/mf_rag_sources.csv).

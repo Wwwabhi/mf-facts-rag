@@ -137,6 +137,7 @@ def main() -> None:
 
         [data-testid="stHeader"] {
             background: transparent !important;
+            pointer-events: none !important;
         }
 
         /* Hide Streamlit Deploy button, decoration line, and toolbar */
@@ -150,11 +151,11 @@ def main() -> None:
             visibility: hidden !important;
         }
 
-        /* Center content layout with strict unified alignment */
+        /* Center content layout with bottom clearance for fixed input bar */
         .block-container {
             max-width: 780px !important;
             padding-top: 3.5rem !important;
-            padding-bottom: 4rem !important;
+            padding-bottom: 115px !important;
             padding-left: 1.5rem !important;
             padding-right: 1.5rem !important;
             margin: 0 auto !important;
@@ -183,9 +184,44 @@ def main() -> None:
             margin-top: -48px !important;
         }
 
-        /* Collapse / Expand Hamburger button */
-        [data-testid="stSidebarCollapseButton"] button,
+        /* Sidebar Hamburger Button (Collapsed Control) - Fixed Top Left Corner */
+        [data-testid="stSidebarCollapsedControl"] {
+            position: fixed !important;
+            top: 0.85rem !important;
+            left: 0.85rem !important;
+            z-index: 99999 !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            pointer-events: auto !important;
+        }
+
         [data-testid="stSidebarCollapsedControl"] button {
+            background: #14191c !important;
+            border: 1px solid #232c32 !important;
+            border-radius: 8px !important;
+            color: #9ba8b5 !important;
+            width: 38px !important;
+            height: 38px !important;
+            min-height: 38px !important;
+            padding: 0 !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45) !important;
+            cursor: pointer !important;
+            pointer-events: auto !important;
+            transition: background 0.15s ease, border-color 0.15s ease !important;
+        }
+
+        [data-testid="stSidebarCollapsedControl"] button:hover {
+            background: #1c2227 !important;
+            border-color: #354049 !important;
+            color: #ffffff !important;
+        }
+
+        /* Collapse button inside expanded sidebar */
+        [data-testid="stSidebarCollapseButton"] button {
             background: #14191c !important;
             border: 1px solid #232c32 !important;
             border-radius: 8px !important;
@@ -199,11 +235,12 @@ def main() -> None:
             justify-content: center !important;
             box-shadow: none !important;
             z-index: 10 !important;
+            cursor: pointer !important;
+            pointer-events: auto !important;
             transition: background 0.15s ease, border-color 0.15s ease !important;
         }
 
-        [data-testid="stSidebarCollapseButton"] button:hover,
-        [data-testid="stSidebarCollapsedControl"] button:hover {
+        [data-testid="stSidebarCollapseButton"] button:hover {
             background: #1c2227 !important;
             border-color: #354049 !important;
             color: #ffffff !important;
@@ -215,20 +252,20 @@ def main() -> None:
             display: none !important;
         }
 
-        /* Single 3-bar hamburger icon */
+        /* Clean 3-bar hamburger icon */
         [data-testid="stSidebarCollapseButton"] button::after,
         [data-testid="stSidebarCollapsedControl"] button::after {
             content: "";
             display: block;
-            width: 14px;
-            height: 10px;
+            width: 15px;
+            height: 11px;
             background: linear-gradient(
                 to bottom,
                 #9ba8b5 0px, #9ba8b5 2px,
-                transparent 2px, transparent 4px,
-                #9ba8b5 4px, #9ba8b5 6px,
-                transparent 6px, transparent 8px,
-                #9ba8b5 8px, #9ba8b5 10px
+                transparent 2px, transparent 4.5px,
+                #9ba8b5 4.5px, #9ba8b5 6.5px,
+                transparent 6.5px, transparent 9px,
+                #9ba8b5 9px, #9ba8b5 11px
             );
         }
 
@@ -237,16 +274,11 @@ def main() -> None:
             background: linear-gradient(
                 to bottom,
                 #ffffff 0px, #ffffff 2px,
-                transparent 2px, transparent 4px,
-                #ffffff 4px, #ffffff 6px,
-                transparent 6px, transparent 8px,
-                #ffffff 8px, #ffffff 10px
+                transparent 2px, transparent 4.5px,
+                #ffffff 4.5px, #ffffff 6.5px,
+                transparent 6.5px, transparent 9px,
+                #ffffff 9px, #ffffff 11px
             );
-        }
-
-        [data-testid="stSidebarCollapsedControl"] {
-            top: 1.1rem !important;
-            left: 1.1rem !important;
         }
 
         /* Top Left Corner Brand Lockup */
@@ -504,16 +536,57 @@ def main() -> None:
             color: #ffffff !important;
         }
 
-        /* Center Section: Input Form (100% width matching cards) */
+        /* Center Section: Input Form Fixed to the Bottom */
         [data-testid="stForm"] {
+            position: fixed !important;
+            bottom: 1.25rem !important;
+            left: 50% !important;
+            transform: translateX(-50%) !important;
+            width: min(780px, calc(100vw - 2rem)) !important;
+            max-width: 780px !important;
+            z-index: 999 !important;
+            background: #13181b !important;
             border: 1px solid var(--border-card) !important;
             border-radius: 16px !important;
-            background: var(--bg-card) !important;
             padding: 6px 8px 6px 14px !important;
-            box-shadow: none !important;
-            margin-top: 1.5rem !important;
-            width: 100% !important;
+            box-shadow: 0 12px 36px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(255, 255, 255, 0.05) !important;
+            margin: 0 !important;
             box-sizing: border-box !important;
+            transition: left 0.2s ease, max-width 0.2s ease, width 0.2s ease !important;
+        }
+
+        /* Adjust fixed input position on desktop when sidebar is expanded */
+        @media (min-width: 769px) {
+            body:has([data-testid="stSidebar"][aria-expanded="true"]) [data-testid="stForm"],
+            [data-testid="stApp"]:has([data-testid="stSidebar"][aria-expanded="true"]) [data-testid="stForm"] {
+                left: calc(50% + 10.5rem) !important;
+                width: min(780px, calc(100vw - 23rem)) !important;
+                max-width: min(780px, calc(100vw - 23rem)) !important;
+            }
+        }
+
+        /* Ensure input text field and submit button stay side-by-side on all viewports */
+        [data-testid="stForm"] [data-testid="stHorizontalBlock"] {
+            display: flex !important;
+            flex-direction: row !important;
+            align-items: center !important;
+            gap: 8px !important;
+            flex-wrap: nowrap !important;
+            width: 100% !important;
+        }
+
+        [data-testid="stForm"] [data-testid="stColumn"] {
+            min-width: 0 !important;
+        }
+
+        [data-testid="stForm"] [data-testid="stColumn"]:first-child {
+            flex: 1 1 auto !important;
+            width: auto !important;
+        }
+
+        [data-testid="stForm"] [data-testid="stColumn"]:last-child {
+            flex: 0 0 auto !important;
+            width: auto !important;
         }
 
         [data-testid="stTextInputRootElement"] > div,
@@ -529,7 +602,7 @@ def main() -> None:
             padding: 0 !important;
             color: #f0f6fc !important;
             background: transparent !important;
-            font-size: 0.95rem !important;
+            font-size: 16px !important; /* 16px prevents iOS Safari auto-zoom on mobile */
             caret-color: #00d09c !important;
         }
 
@@ -661,14 +734,110 @@ def main() -> None:
             font-size: 0.84rem !important;
         }
 
-        @media (max-width: 640px) {
+        /* Mobile & Tablet Responsiveness */
+        @media (max-width: 768px) {
             .block-container {
-                padding-top: 2rem !important;
+                padding-top: 3.75rem !important;
+                padding-bottom: 95px !important;
                 padding-left: 1rem !important;
                 padding-right: 1rem !important;
             }
+
+            /* Fixed bottom input bar on mobile */
+            [data-testid="stForm"] {
+                bottom: 0.75rem !important;
+                left: 0.75rem !important;
+                right: 0.75rem !important;
+                transform: none !important;
+                width: calc(100% - 1.5rem) !important;
+                max-width: none !important;
+                padding: 5px 6px 5px 12px !important;
+                border-radius: 14px !important;
+                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.85) !important;
+            }
+
+            .st-key-ask_button button {
+                min-height: 42px !important;
+                padding: 0 10px !important;
+                font-size: 0.86rem !important;
+            }
+
+            .st-key-ask_button button p {
+                font-size: 0.86rem !important;
+            }
+
+            /* Sidebar Hamburger in top-left */
+            [data-testid="stSidebarCollapsedControl"] {
+                top: 0.75rem !important;
+                left: 0.75rem !important;
+            }
+
+            [data-testid="stSidebarCollapsedControl"] button {
+                width: 36px !important;
+                height: 36px !important;
+                min-height: 36px !important;
+            }
+
+            /* Stack example questions vertically on mobile */
+            [data-testid="stAppViewContainer"] [data-testid="stHorizontalBlock"]:has(.st-key-example_0) {
+                display: flex !important;
+                flex-direction: column !important;
+                gap: 8px !important;
+            }
+
+            [data-testid="stAppViewContainer"] [data-testid="stHorizontalBlock"]:has(.st-key-example_0) > [data-testid="stColumn"] {
+                width: 100% !important;
+                max-width: 100% !important;
+                flex: 1 1 100% !important;
+            }
+
+            .st-key-example_0 button,
+            .st-key-example_1 button,
+            .st-key-example_2 button {
+                min-height: auto !important;
+                padding: 0.85rem 1rem !important;
+                border-radius: 12px !important;
+            }
+
             .hero-heading {
-                font-size: 2rem !important;
+                font-size: 1.85rem !important;
+                margin-bottom: 1.15rem !important;
+                line-height: 1.25 !important;
+            }
+
+            .facts-banner {
+                font-size: 0.84rem !important;
+                padding: 0.75rem 0.95rem !important;
+                margin-bottom: 1.5rem !important;
+            }
+
+            .user-query-container {
+                padding: 0.85rem 1rem !important;
+            }
+
+            .user-query-text {
+                font-size: 0.98rem !important;
+            }
+
+            [data-testid="stVerticalBlockBorderWrapper"] {
+                padding: 1.1rem 1.25rem !important;
+            }
+
+            [data-testid="stSidebar"] {
+                width: min(85vw, 320px) !important;
+                max-width: 320px !important;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .hero-heading {
+                font-size: 1.6rem !important;
+            }
+
+            [data-testid="stForm"] {
+                left: 0.5rem !important;
+                right: 0.5rem !important;
+                width: calc(100% - 1rem) !important;
             }
         }
         </style>

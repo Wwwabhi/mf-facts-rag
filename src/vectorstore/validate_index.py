@@ -16,8 +16,8 @@ def main() -> int:
     client = chromadb.PersistentClient(path=str(PERSIST_DIRECTORY))
     collection = client.get_collection(COLLECTION_NAME)
     sample = collection.get(limit=1, include=["embeddings", "metadatas"])
-    embeddings = sample["embeddings"]
-    dimension = len(embeddings[0]) if len(embeddings) else 0
+    embeddings = sample.get("embeddings")
+    dimension = len(embeddings[0]) if embeddings is not None and len(embeddings) > 0 else 0
     print(f"Collection: {COLLECTION_NAME}")
     print(f"Vectors: {collection.count()}")
     print(f"Sample embedding dimension: {dimension}")

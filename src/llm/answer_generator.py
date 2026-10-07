@@ -64,15 +64,16 @@ def generate_answer(
     model = (model_name or settings.GROQ_MODEL).strip()
     if not model:
         raise GroqRequestError("GROQ_MODEL is not set. Add it to the project-root .env file.")
-    if client is None:
+    groq_client: Any = client
+    if groq_client is None:
         try:
-            client = create_groq_client()
+            groq_client = create_groq_client()
         except Exception as exc:
             raise GroqRequestError(format_groq_error(exc, settings.GROQ_API_KEY, model)) from None
     source_url, source_date = _citation_source(evidence)
 
     try:
-        completion = client.chat.completions.create(
+        completion = groq_client.chat.completions.create(
             model=model,
             temperature=0,
             max_tokens=350,

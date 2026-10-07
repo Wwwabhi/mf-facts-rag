@@ -49,16 +49,16 @@ def retrieve_chunks(
     if not question.strip():
         raise ValueError("question must not be empty")
 
-    model = model if model is not None else _shared_embedding_model(MODEL_NAME)
-    collection = collection if collection is not None else _load_collection(persist_directory)
-    count = int(collection.count())
+    active_model: Any = model if model is not None else _shared_embedding_model(MODEL_NAME)
+    active_collection: Any = collection if collection is not None else _load_collection(persist_directory)
+    count = int(active_collection.count())
     if count == 0:
         return []
 
     candidate_k = min(count, max(top_k, top_k * 3))
-    vector = model.encode([question], convert_to_numpy=True, normalize_embeddings=True)
+    vector = active_model.encode([question], convert_to_numpy=True, normalize_embeddings=True)
     query_embedding = vector.tolist() if hasattr(vector, "tolist") else vector
-    result = collection.query(
+    result = active_collection.query(
         query_embeddings=query_embedding,
         n_results=candidate_k,
         include=["documents", "metadatas", "distances"],

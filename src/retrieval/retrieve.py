@@ -55,7 +55,7 @@ def retrieve_chunks(
     if count == 0:
         return []
 
-    candidate_k = min(count, max(top_k, top_k * 3))
+    candidate_k = min(count, max(50, top_k * 3))
     vector = active_model.encode([question], convert_to_numpy=True, normalize_embeddings=True)
     query_embedding = vector.tolist() if hasattr(vector, "tolist") else vector
     result = active_collection.query(

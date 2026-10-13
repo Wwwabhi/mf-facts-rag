@@ -4,6 +4,9 @@ import unittest
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
+from bs4 import BeautifulSoup
+
+from src.data.html_extractor import key_facts
 from src.llm.answer_generator import generate_answer
 from src.llm.response_formatter import format_answer
 from src.retrieval.query_pipeline import answer_question
@@ -127,6 +130,59 @@ class RetrievalTests(unittest.TestCase):
             [chunk["chunk_id"] for chunk in reranked[:3]],
             ["matching-scheme-page", "matching-factsheet", "matching-kim"],
         )
+
+    def test_key_facts_on_raw_scheme_pages(self) -> None:
+        raw_dir = retrieval_module.ROOT / "data" / "raw"
+        expected = {
+            "1_hdfc_flexi_cap_fund_scheme_page.html": [
+                "Inception Date: 01/01/2013",
+                "Riskometer: Very High",
+                "Min SIP: ₹ 100",
+            ],
+            "5_hdfc_large_cap_fund_scheme_page.html": [
+                "Inception Date: 11/10/1996",
+                "Riskometer: Very High",
+                "Min SIP: ₹ 100",
+            ],
+            "9_hdfc_mid_cap_fund_scheme_page.html": [
+                "Inception Date: 25/06/2007",
+                "Riskometer: Very High",
+                "Min SIP: ₹ 100",
+            ],
+            "13_hdfc_elss_tax_saver_fund_scheme_page.html": [
+                "Inception Date: 31/03/1996",
+                "Riskometer: Very High",
+                "Min SIP: ₹ 500",
+            ],
+        }
+        for file_name, expected_facts in expected.items():
+            html_text = (raw_dir / file_name).read_text(encoding="utf-8")
+            soup = BeautifulSoup(html_text, "html.parser")
+            facts = key_facts(soup)
+            self.assertEqual(facts, expected_facts)
+            self.assertIn("Riskometer: Very High", facts)
+
+    def test_regression_real_retrieval_and_rerank_for_riskometer_all_schemes(self) -> None:
+        schemes = [
+            ("HDFC Flexi Cap Fund", "HDFC Flexi Cap Fund"),
+            ("HDFC Large Cap Fund", "HDFC Large Cap Fund"),
+            ("HDFC Mid Cap Fund", "HDFC Mid Cap Fund"),
+            ("HDFC ELSS - Tax Saver Fund", "HDFC ELSS - Tax Saver Fund"),
+        ]
+        for scheme_query, expected_scheme in schemes:
+            question = f"What is the riskometer of {scheme_query}?"
+            top_chunks = retrieve_chunks(question, top_k=3)
+            matching_chunks = [
+                chunk
+                for chunk in top_chunks
+                if "Riskometer: Very High" in chunk.get("content", "")
+                and chunk.get("metadata", {}).get("document_type") == "Scheme Page"
+                and chunk.get("metadata", {}).get("scheme") == expected_scheme
+            ]
+            self.assertTrue(
+                len(matching_chunks) >= 1,
+                f"Expected top 3 chunks for '{question}' to include 'Riskometer: Very High' from {expected_scheme} Scheme Page",
+            )
 
 
 class GroqAnswerTests(unittest.TestCase):

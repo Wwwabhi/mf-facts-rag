@@ -127,9 +127,24 @@ def _clean_html_fragment(container: Any) -> str:
     return "\n".join(pieces)
 
 
+def key_facts(soup: BeautifulSoup) -> list[str]:
+    facts: list[str] = []
+    for el in soup.select('[class*="mainvalue"]'):
+        title_node = el.select_one('[class*="title"]')
+        if not title_node:
+            continue
+        label = " ".join("".join(title_node.find_all(string=True, recursive=False)).split()).strip()
+        remaining_texts = [node for node in el.find_all(string=True) if title_node not in node.parents]
+        val = " ".join(" ".join(remaining_texts).split()).strip()
+        if label and val:
+            facts.append(f"{label}: {val}")
+    return facts
+
+
 def extract_text_from_html(html_text: str) -> str:
     soup = BeautifulSoup(html_text, "html.parser")
     title = soup.title.get_text(" ", strip=True) if soup.title else ""
+    facts = key_facts(soup)
 
     target = None
     for selector in ["main", "article", "[role='main']", ".main-content", ".content-area", ".cms-content", "#content", ".content"]:
@@ -147,6 +162,8 @@ def extract_text_from_html(html_text: str) -> str:
         content = "\n".join(" ".join(line.split()) for line in soup.get_text("\n").splitlines() if " ".join(line.split()))
 
     lines = [line for line in content.splitlines() if line.strip()]
+    if facts:
+        lines.insert(0, f"Key facts: {' | '.join(facts)}")
     if title:
         lines.insert(0, f"Title: {title}")
     return "\n".join(lines)

@@ -6,7 +6,7 @@ from typing import Any
 
 
 WORD_PATTERN = re.compile(r"[a-z0-9]+", re.IGNORECASE)
-RISKOMETER_QUERY = re.compile(r"\b(?:riskometer|risk level)\b", re.IGNORECASE)
+RISKOMETER_QUERY = re.compile(r"\b(?:risk-o-meter|riskometer|risk level|risk rating|how risky)\b", re.IGNORECASE)
 STOP_WORDS = {
     "a", "an", "and", "are", "do", "does", "for", "from", "how", "i", "in", "is",
     "it", "of", "on", "the", "to", "what", "when", "where", "which", "who", "with",

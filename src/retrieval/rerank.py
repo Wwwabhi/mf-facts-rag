@@ -69,6 +69,7 @@ def rerank_chunks(question: str, chunks: list[dict[str, Any]], top_k: int) -> li
             key=lambda chunk: (
                 not _scheme_matches(query_terms, str(chunk.get("metadata", {}).get("scheme", ""))),
                 _riskometer_document_priority(str(chunk.get("metadata", {}).get("document_type", ""))),
+                "riskometer" not in str(chunk.get("content", "")).casefold(),
                 -chunk["relevance_score"],
                 chunk.get("distance", 2.0),
             )

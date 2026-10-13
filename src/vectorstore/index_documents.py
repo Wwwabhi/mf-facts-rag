@@ -4,7 +4,11 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from src.vectorstore.chroma_client import get_persistent_collection
+from src.vectorstore.chroma_client import (
+    compute_index_fingerprint,
+    get_persistent_collection,
+    record_collection_fingerprint,
+)
 from src.vectorstore.embed_chunks import (
     MODEL_NAME,
     embed_texts,
@@ -12,6 +16,7 @@ from src.vectorstore.embed_chunks import (
     write_embeddings_preview,
 )
 from src.vectorstore.schema import chroma_metadata, deduplicate_chunks, load_chunks, validate_registered_sources
+from src.retrieval.retrieve import clear_collection_cache
 from src.config import settings
 
 
@@ -34,6 +39,8 @@ def index_chunks(
     chunks_path: str | Path = CHUNKS_PATH,
     persist_directory: str | Path = PERSIST_DIRECTORY,
     preview_path: str | Path = PREVIEW_PATH,
+    *,
+    fingerprint: str | None = None,
 ) -> dict[str, Any]:
     chunks, duplicates_removed = deduplicate_chunks(load_chunks(chunks_path))
     validate_registered_sources(chunks, CSV_PATH)
@@ -67,6 +74,24 @@ def index_chunks(
     if vectors_stored != len(chunks):
         raise RuntimeError(f"Expected {len(chunks)} vectors, found {vectors_stored}")
 
+    if fingerprint is None:
+        if Path(chunks_path).is_file():
+            fingerprint = compute_index_fingerprint(
+                chunks_path=chunks_path,
+                model_name=MODEL_NAME,
+                dimension=dimension,
+            )
+        else:
+            import hashlib
+
+            hasher = hashlib.sha256()
+            hasher.update(f"{MODEL_NAME}:{dimension}\n".encode("utf-8"))
+            for chunk in chunks:
+                hasher.update(chunk.get("content", "").encode("utf-8"))
+            fingerprint = hasher.hexdigest()
+    record_collection_fingerprint(collection, fingerprint, MODEL_NAME, dimension)
+    clear_collection_cache(persist_directory)
+
     return {
         "chunks_processed": len(chunks),
         "duplicates_removed": duplicates_removed,
@@ -74,6 +99,7 @@ def index_chunks(
         "embedding_dimension": dimension,
         "persistence_path": str(Path(persist_directory).resolve()),
         "preview_path": str(Path(preview_path).resolve()),
+        "fingerprint": fingerprint,
     }
 
 
@@ -83,6 +109,7 @@ def main() -> int:
     print(f"Duplicate chunks removed: {report['duplicates_removed']}")
     print(f"Vectors stored: {report['vectors_stored']}")
     print(f"Embedding dimension: {report['embedding_dimension']}")
+    print(f"Index fingerprint: {report.get('fingerprint', '')}")
     print(f"ChromaDB persistence path: {report['persistence_path']}")
     print(f"Embedding preview: {report['preview_path']}")
     return 0

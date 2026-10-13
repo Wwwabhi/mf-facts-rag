@@ -13,7 +13,7 @@ from src.config import settings
 from src.guardrails.refusal_templates import FACTS_ONLY_DISCLAIMER
 from src.llm.groq_client import GroqRequestError
 from src.retrieval.query_pipeline import QueryResponse, answer_question
-from src.vectorstore.index_manager import ensure_index
+from src.vectorstore.index_manager import compute_index_fingerprint, ensure_index
 
 
 EXAMPLE_QUESTIONS = (
@@ -24,7 +24,7 @@ EXAMPLE_QUESTIONS = (
 
 
 @st.cache_resource(show_spinner="Preparing the local knowledge index...")
-def _prepare_index(persist_directory: str) -> dict[str, object]:
+def _prepare_index(persist_directory: str, fingerprint: str | None = None) -> dict[str, object]:
     return ensure_index(persist_directory=persist_directory)
 
 
@@ -359,7 +359,8 @@ def main() -> None:
     )
 
     try:
-        _prepare_index(str(settings.CHROMA_DB_PATH))
+        fingerprint = compute_index_fingerprint()
+        _prepare_index(str(settings.CHROMA_DB_PATH), fingerprint=fingerprint)
     except Exception as exc:
         st.error(f"Unable to prepare the local knowledge index: {exc}")
         return

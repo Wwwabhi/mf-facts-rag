@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import unittest
+from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
@@ -163,26 +164,34 @@ class RetrievalTests(unittest.TestCase):
             self.assertIn("Riskometer: Very High", facts)
 
     def test_regression_real_retrieval_and_rerank_for_riskometer_all_schemes(self) -> None:
-        schemes = [
-            ("HDFC Flexi Cap Fund", "HDFC Flexi Cap Fund"),
-            ("HDFC Large Cap Fund", "HDFC Large Cap Fund"),
-            ("HDFC Mid Cap Fund", "HDFC Mid Cap Fund"),
-            ("HDFC ELSS - Tax Saver Fund", "HDFC ELSS - Tax Saver Fund"),
-        ]
-        for scheme_query, expected_scheme in schemes:
-            question = f"What is the riskometer of {scheme_query}?"
-            top_chunks = retrieve_chunks(question, top_k=3)
-            matching_chunks = [
-                chunk
-                for chunk in top_chunks
-                if "Riskometer: Very High" in chunk.get("content", "")
-                and chunk.get("metadata", {}).get("document_type") == "Scheme Page"
-                and chunk.get("metadata", {}).get("scheme") == expected_scheme
+        import tempfile
+        from src.vectorstore.index_documents import index_chunks
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            preview_file = Path(temp_dir) / "preview.txt"
+            index_chunks(persist_directory=temp_dir, preview_path=preview_file)
+
+            schemes = [
+                ("HDFC Flexi Cap Fund", "HDFC Flexi Cap Fund", "https://www.hdfcfund.com/explore/mutual-funds/hdfc-flexi-cap-fund/direct"),
+                ("HDFC Large Cap Fund", "HDFC Large Cap Fund", "https://www.hdfcfund.com/explore/mutual-funds/hdfc-large-cap-fund/regular"),
+                ("HDFC Mid Cap Fund", "HDFC Mid Cap Fund", "https://www.hdfcfund.com/explore/mutual-funds/hdfc-mid-cap-fund/regular"),
+                ("HDFC ELSS - Tax Saver Fund", "HDFC ELSS - Tax Saver Fund", "https://www.hdfcfund.com/explore/mutual-funds/hdfc-elss-tax-saver-fund/regular"),
             ]
-            self.assertTrue(
-                len(matching_chunks) >= 1,
-                f"Expected top 3 chunks for '{question}' to include 'Riskometer: Very High' from {expected_scheme} Scheme Page",
-            )
+            for scheme_query, expected_scheme, expected_url in schemes:
+                question = f"What is the riskometer of {scheme_query}?"
+                top_chunks = retrieve_chunks(question, top_k=3, persist_directory=temp_dir)
+                matching_chunks = [
+                    chunk
+                    for chunk in top_chunks
+                    if "Riskometer: Very High" in chunk.get("content", "")
+                    and chunk.get("metadata", {}).get("document_type") == "Scheme Page"
+                    and chunk.get("metadata", {}).get("scheme") == expected_scheme
+                    and chunk.get("metadata", {}).get("source_url") == expected_url
+                ]
+                self.assertTrue(
+                    len(matching_chunks) >= 1,
+                    f"Expected top 3 chunks for '{question}' to include 'Riskometer: Very High' from {expected_scheme} Scheme Page",
+                )
 
 
 class GroqAnswerTests(unittest.TestCase):

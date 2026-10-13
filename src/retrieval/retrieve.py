@@ -6,7 +6,7 @@ from typing import Any
 
 from src.vectorstore.chroma_client import COLLECTION_NAME
 from src.vectorstore.embed_chunks import MODEL_NAME, load_embedding_model
-from src.retrieval.rerank import rerank_chunks
+from src.retrieval.rerank import RISKOMETER_QUERY, rerank_chunks
 from src.config import settings
 
 
@@ -16,6 +16,15 @@ _MODEL_CACHE: dict[str, Any] = {}
 _MODEL_LOCK = Lock()
 _COLLECTION_CACHE: dict[str, Any] = {}
 _COLLECTION_LOCK = Lock()
+
+
+def clear_collection_cache(persist_directory: str | Path | None = None) -> None:
+    with _COLLECTION_LOCK:
+        if persist_directory is None:
+            _COLLECTION_CACHE.clear()
+        else:
+            path = str(Path(persist_directory).resolve())
+            _COLLECTION_CACHE.pop(path, None)
 
 
 def _shared_embedding_model(model_name: str = MODEL_NAME) -> Any:
@@ -65,7 +74,9 @@ def retrieve_chunks(
     )
 
     candidates: list[dict[str, Any]] = []
+    existing_cids: set[str] = set()
     for index, chunk_id in enumerate(result["ids"][0]):
+        existing_cids.add(chunk_id)
         candidates.append(
             {
                 "chunk_id": chunk_id,
@@ -74,4 +85,24 @@ def retrieve_chunks(
                 "distance": float(result["distances"][0][index]),
             }
         )
+
+    if RISKOMETER_QUERY.search(question):
+        try:
+            extra_res = active_collection.get(
+                where={"document_type": "Scheme Page"},
+                include=["documents", "metadatas"],
+            )
+            for cid, doc, meta in zip(extra_res["ids"], extra_res["documents"], extra_res["metadatas"]):
+                if cid not in existing_cids and "riskometer" in (doc or "").casefold():
+                    candidates.append(
+                        {
+                            "chunk_id": cid,
+                            "content": doc or "",
+                            "metadata": meta or {},
+                            "distance": 0.35,
+                        }
+                    )
+        except Exception:
+            pass
+
     return rerank_chunks(question, candidates, top_k)

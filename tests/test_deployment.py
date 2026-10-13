@@ -12,6 +12,8 @@ from streamlit.testing.v1 import AppTest
 from app.main import _prepare_index
 from src.llm.answer_generator import generate_answer
 from src.llm.groq_client import GroqRequestError
+from src.vectorstore.chroma_client import compute_index_fingerprint
+from src.vectorstore.embed_chunks import MODEL_NAME
 from src.vectorstore.index_manager import ensure_index
 from src.vectorstore.index_documents import index_chunks
 from src.vectorstore.schema import deduplicate_chunks, validate_registered_sources
@@ -45,7 +47,9 @@ class IndexStartupTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             persist_path = Path(directory) / "chroma"
             chunks_path = Path(directory) / "chunks.jsonl"
+            chunks_path.write_text('{"chunk_id": "1", "content": "text"}\n', encoding="utf-8")
             preview_path = Path(directory) / "preview.txt"
+            expected_fp = compute_index_fingerprint(chunks_path)
             with (
                 patch("src.vectorstore.index_manager.get_persistent_collection", return_value=empty_collection),
                 patch("src.vectorstore.index_manager.index_chunks", return_value=build_result) as build,
@@ -58,22 +62,141 @@ class IndexStartupTests(unittest.TestCase):
             chunks_path=chunks_path,
             persist_directory=persist_path,
             preview_path=preview_path,
+            fingerprint=expected_fp,
         )
 
-    def test_skips_build_when_collection_has_vectors(self) -> None:
-        populated_collection = Mock()
-        populated_collection.count.return_value = 12
+    def test_unchanged_fingerprint_reuses_index(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             persist_path = Path(directory) / "chroma"
+            chunks_path = Path(directory) / "chunks.jsonl"
+            chunks_path.write_text('{"chunk_id": "1", "content": "text"}\n', encoding="utf-8")
+            expected_fp = compute_index_fingerprint(chunks_path)
+            populated_collection = Mock()
+            populated_collection.count.return_value = 12
+            populated_collection.metadata = {
+                "fingerprint": expected_fp,
+                "embedding_dimension": 384,
+                "embedding_model": MODEL_NAME,
+            }
             with (
                 patch("src.vectorstore.index_manager.get_persistent_collection", return_value=populated_collection),
                 patch("src.vectorstore.index_manager.index_chunks") as build,
             ):
-                result = ensure_index(persist_directory=persist_path)
+                result = ensure_index(chunks_path=chunks_path, persist_directory=persist_path)
 
         self.assertFalse(result["built"])
         self.assertEqual(result["vectors_stored"], 12)
+        self.assertEqual(result["fingerprint"], expected_fp)
         build.assert_not_called()
+
+    def test_changed_chunks_rebuilds_populated_index(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            persist_path = Path(directory) / "chroma"
+            chunks_path = Path(directory) / "chunks.jsonl"
+            chunks_path.write_text('{"chunk_id": "1", "content": "new text"}\n', encoding="utf-8")
+            expected_fp = compute_index_fingerprint(chunks_path)
+            stale_collection = Mock()
+            stale_collection.count.return_value = 12
+            stale_collection.metadata = {
+                "fingerprint": "old_different_fingerprint",
+                "embedding_dimension": 384,
+                "embedding_model": MODEL_NAME,
+            }
+            build_result = {
+                "chunks_processed": 12,
+                "vectors_stored": 12,
+                "embedding_dimension": 384,
+                "persistence_path": str(persist_path),
+                "fingerprint": expected_fp,
+            }
+            with (
+                patch("src.vectorstore.index_manager.get_persistent_collection", return_value=stale_collection),
+                patch("src.vectorstore.index_manager.index_chunks", return_value=build_result) as build,
+            ):
+                result = ensure_index(chunks_path=chunks_path, persist_directory=persist_path)
+
+        self.assertTrue(result["built"])
+        build.assert_called_once()
+
+    def test_legacy_populated_index_without_fingerprint_rebuilds_once(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            persist_path = Path(directory) / "chroma"
+            chunks_path = Path(directory) / "chunks.jsonl"
+            chunks_path.write_text('{"chunk_id": "1", "content": "text"}\n', encoding="utf-8")
+            legacy_collection = Mock()
+            legacy_collection.count.return_value = 12
+            legacy_collection.metadata = {}  # No fingerprint
+            build_result = {
+                "chunks_processed": 12,
+                "vectors_stored": 12,
+                "embedding_dimension": 384,
+                "persistence_path": str(persist_path),
+            }
+            with (
+                patch("src.vectorstore.index_manager.get_persistent_collection", return_value=legacy_collection),
+                patch("src.vectorstore.index_manager.index_chunks", return_value=build_result) as build,
+            ):
+                result = ensure_index(chunks_path=chunks_path, persist_directory=persist_path)
+
+        self.assertTrue(result["built"])
+        build.assert_called_once()
+
+    def test_incompatible_embedding_config_triggers_rebuild(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            persist_path = Path(directory) / "chroma"
+            chunks_path = Path(directory) / "chunks.jsonl"
+            chunks_path.write_text('{"chunk_id": "1", "content": "text"}\n', encoding="utf-8")
+            incompatible_collection = Mock()
+            incompatible_collection.count.return_value = 12
+            incompatible_collection.metadata = {
+                "embedding_dimension": 768,
+                "embedding_model": "other-model",
+            }
+            build_result = {
+                "chunks_processed": 12,
+                "vectors_stored": 12,
+                "embedding_dimension": 384,
+                "persistence_path": str(persist_path),
+            }
+            mock_client = Mock()
+            with (
+                patch("src.vectorstore.index_manager.get_persistent_collection", return_value=incompatible_collection),
+                patch("chromadb.PersistentClient", return_value=mock_client),
+                patch("src.vectorstore.index_manager.index_chunks", return_value=build_result) as build,
+            ):
+                result = ensure_index(chunks_path=chunks_path, persist_directory=persist_path)
+
+        self.assertTrue(result["built"])
+        mock_client.delete_collection.assert_called_once()
+        build.assert_called_once()
+
+    def test_failed_indexing_does_not_record_new_fingerprint(self) -> None:
+        collection = Mock()
+        collection.get.return_value = {"ids": []}
+        collection.count.return_value = 1
+        model = Mock()
+        model.get_embedding_dimension.return_value = 2
+
+        with tempfile.TemporaryDirectory() as directory:
+            directory_path = Path(directory)
+            chunks = [{"chunk_id": "1", "content": "text", "source_url": "https://example.com"}]
+            with (
+                patch("src.vectorstore.index_documents.load_chunks", return_value=chunks),
+                patch("src.vectorstore.index_documents.validate_registered_sources"),
+                patch("src.vectorstore.index_documents.load_embedding_model", return_value=model),
+                patch("src.vectorstore.index_documents.embed_texts", return_value=np.array([[0.1, 0.2]])),
+                patch("src.vectorstore.index_documents.write_embeddings_preview"),
+                patch("src.vectorstore.index_documents.get_persistent_collection", return_value=collection),
+            ):
+                collection.upsert.side_effect = RuntimeError("Upsert failed")
+                with self.assertRaises(RuntimeError):
+                    index_chunks(
+                        chunks_path=directory_path / "chunks.jsonl",
+                        persist_directory=directory_path / "chroma",
+                        preview_path=directory_path / "preview.txt",
+                    )
+
+        collection.modify.assert_not_called()
 
     def test_streamlit_caches_index_preparation_for_path(self) -> None:
         _prepare_index.clear()
@@ -85,6 +208,20 @@ class IndexStartupTests(unittest.TestCase):
             build.assert_called_once_with(persist_directory="/tmp/chroma-cached-test")
         finally:
             _prepare_index.clear()
+
+    def test_streamlit_preparation_cache_invalidates_when_fingerprint_changes(self) -> None:
+        _prepare_index.clear()
+        try:
+            with patch("app.main.ensure_index", return_value={"built": True}) as build:
+                first = _prepare_index("/tmp/chroma-inval-test", fingerprint="fp_v1")
+                second = _prepare_index("/tmp/chroma-inval-test", fingerprint="fp_v1")
+                third = _prepare_index("/tmp/chroma-inval-test", fingerprint="fp_v2")
+            self.assertEqual(first, second)
+            self.assertEqual(first, third)
+            self.assertEqual(build.call_count, 2)
+        finally:
+            _prepare_index.clear()
+
 
 
 class ChunkIndexingTests(unittest.TestCase):

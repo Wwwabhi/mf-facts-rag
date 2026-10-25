@@ -1,0 +1,285 @@
+[
+  {
+    "id": "q001",
+    "question": "What kinds of companies does HDFC Flexi Cap Fund invest in?",
+    "ground_truth": "It invests across large-cap, mid-cap, and small-cap companies, with flexibility to allocate across these segments based on market conditions.",
+    "reference_contexts": [
+      "HDFC Flexi Cap Fund: HDFC Flexi Cap Fund is an open-ended equity mutual fund scheme that invests across large-cap, mid-cap, and small-cap companies.",
+      "HDFC Flexi Cap Fund: Flexi Cap Funds offer fund managers complete flexibility to allocate assets across large, mid, and small-cap stocks, based on market conditions."
+    ],
+    "category": "factual"
+  },
+  {
+    "id": "q002",
+    "question": "How is a flexi cap fund different from a multi cap fund?",
+    "ground_truth": "Flexi cap funds have flexibility to allocate across market capitalizations, whereas multi cap funds must follow SEBI-defined minimum allocations for each market segment.",
+    "reference_contexts": [
+      "HDFC Flexi Cap Fund: Flexi Cap funds have complete flexibility in allocation across market caps, whereas Multi Cap funds follow SEBI-defined minimum allocation rules for each market segment."
+    ],
+    "category": "factual"
+  },
+  {
+    "id": "q003",
+    "question": "What does NAV mean, and how is NAV per unit calculated?",
+    "ground_truth": "NAV means Net Asset Value. NAV per unit equals the total market value of the scheme's securities minus liabilities, divided by its outstanding units on a given date.",
+    "reference_contexts": [
+      "HDFC Flexi Cap Fund: Net Asset Value (NAV) per unit is the total market value of securities of a scheme minus liabilities divided by the total number of outstanding units on a given date."
+    ],
+    "category": "factual"
+  },
+  {
+    "id": "q004",
+    "question": "What is TER, and does the published daily NAV already account for it?",
+    "ground_truth": "TER represents the costs of running and managing a mutual fund scheme, expressed as a percentage of its average NAV. The daily NAV is disclosed after deducting these expenses.",
+    "reference_contexts": [
+      "HDFC Flexi Cap Fund: The Total Expense Ration (TER) represents the costs for running and managing a Mutual Fund scheme. It is calculated as a percentage of the scheme’s average Net Asset Value (NAV). The daily NAV of a Mutual Fund is disclosed after deducting these expenses."
+    ],
+    "category": "factual"
+  },
+  {
+    "id": "q005",
+    "question": "What does a mutual fund's AUM represent?",
+    "ground_truth": "AUM is the total market value of all assets that a mutual fund manages on behalf of its investors.",
+    "reference_contexts": [
+      "HDFC Large Cap Fund: Assets Under Management (AUM) is the total market value of all assets that a Mutual Fund manages on behalf of its investors."
+    ],
+    "category": "factual"
+  },
+  {
+    "id": "q006",
+    "question": "What were HDFC Large Cap Fund and HDFC Mid Cap Fund previously called?",
+    "ground_truth": "HDFC Large Cap Fund was formerly HDFC Top 100 Fund. HDFC Mid Cap Fund was formerly HDFC Mid-Cap Opportunities Fund.",
+    "reference_contexts": [
+      "KIM - HDFC Large Cap Fund dated November 21, 2025: HDFC Large Cap Fund (Formerly known as HDFC Top 100 Fund)",
+      "KIM - HDFC Mid Cap Fund dated November 21, 2025: HDFC Mid Cap Fund\n\n(Formerly known as HDFC Mid-Cap Opportunities Fund)"
+    ],
+    "category": "multi_hop"
+  },
+  {
+    "id": "q007",
+    "question": "How do the minimum market-cap allocations of HDFC Large Cap Fund and HDFC Mid Cap Fund differ?",
+    "ground_truth": "HDFC Large Cap Fund maintains at least 80% exposure to large-cap stocks. HDFC Mid Cap Fund maintains at least 65% exposure to mid-cap stocks.",
+    "reference_contexts": [
+      "HDFC Large Cap Fund: It will maintain a minimum exposure of 80% to Large Cap stocks, as defined by SEBI",
+      "HDFC Mid Cap Fund: The Scheme shall follow a predominantly Mid cap strategy with a minimum exposure of 65% to Mid-Cap stocks."
+    ],
+    "category": "multi_hop"
+  },
+  {
+    "id": "q008",
+    "question": "Which companies count as large-cap companies in the HDFC Large Cap Fund documents?",
+    "ground_truth": "The documents define large-cap companies as the 100 largest companies in India by full market capitalization, following SEBI's definition.",
+    "reference_contexts": [
+      "HDFC Large Cap Fund: Large Cap stocks, as defined by SEBI, which currently are the 100 largest companies in India in terms of full market capitalization."
+    ],
+    "category": "factual"
+  },
+  {
+    "id": "q009",
+    "question": "What qualities does HDFC Mid Cap Fund look for when selecting companies?",
+    "ground_truth": "It looks for reasonable growth prospects, sound financial strength, sustainable business models, and acceptable valuations offering potential for capital appreciation.",
+    "reference_contexts": [
+      "HDFC Mid Cap Fund: The aim of equity strategy will be to predominantly build a portfolio of mid-cap companies which have: a) reasonable growth prospects b) sound financial strength c) sustainable business models d) acceptable valuation that offers potential for capital appreciation."
+    ],
+    "category": "factual"
+  },
+  {
+    "id": "q010",
+    "question": "According to the supplied scheme pages, can I start a ₹100 SIP in each of the four HDFC funds?",
+    "ground_truth": "₹100 meets the stated minimum SIP for HDFC Flexi Cap, HDFC Large Cap, and HDFC Mid Cap funds. It does not meet HDFC ELSS - Tax Saver Fund's ₹500 minimum.",
+    "reference_contexts": [
+      "HDFC Flexi Cap Fund: The minimum SIP amount for HDFC Flexi Cap Fund is ₹100 (or as specified by the scheme).",
+      "HDFC Large Cap Fund: Key facts: Inception Date: 11/10/1996 | Riskometer: Very High | Min SIP: ₹ 100",
+      "HDFC Mid Cap Fund: Key facts: Inception Date: 25/06/2007 | Riskometer: Very High | Min SIP: ₹ 100",
+      "HDFC ELSS - Tax Saver Fund: Key facts: Inception Date: 31/03/1996 | Riskometer: Very High | Min SIP: ₹ 500"
+    ],
+    "category": "multi_hop"
+  },
+  {
+    "id": "q011",
+    "question": "How do I start investing in HDFC Flexi Cap Fund through the website or app?",
+    "ground_truth": "Complete KYC and keep PAN, Aadhaar, and bank details ready. Open the fund page on the HDFC Mutual Fund website or app and select Invest Now. Choose SIP or lump sum, Direct or Regular plan, and Growth or IDCW option. Enter the amount and payment details, set the SIP date if applicable, and confirm.",
+    "reference_contexts": [
+      "HDFC Flexi Cap Fund: Complete your KYC Keep PAN, Aadhaar and bank details ready.\nVisit HDFC Mutual Fund Website / App Go to the fund page and click Invest Now.\nChoose Investment Mode SIP – invest a fixed amount monthly Lump Sum – invest one time\nSelect Plan & Option Direct or Regular Plan Growth or IDCW option\nEnter Amount & Payment Details Set SIP date or make payment online.\nConfirm & Start Investing Your investment will be processed and units will be allotted."
+    ],
+    "category": "procedural"
+  },
+  {
+    "id": "q012",
+    "question": "Can I submit an HDFC Large Cap Fund redemption request at any HDFC AMC sales office?",
+    "ground_truth": "No. HDFC AMC business centres or sales offices are not Official Points of Acceptance. Submit the request through an authorized channel, such as an AMC/RTA Investor Service Centre or the HDFC MF website or app.",
+    "reference_contexts": [
+      "HDFC Large Cap Fund: The application form/transaction slip for subscription/ redemption/ switches can be submitted at our Official Points of Acceptances whose addresses are available on the website of the AMC.",
+      "HDFC Large Cap Fund: AMC / RTA’s branches i.e. Investor Services Centres*\nHDFC MF website and App/ RTA website for Investors to transact",
+      "HDFC Large Cap Fund: Business Centres i.e. Sales offices of HDFC AMC are not Official Points of Acceptance of transactions."
+    ],
+    "category": "procedural"
+  },
+  {
+    "id": "q013",
+    "question": "For eligible HDFC ELSS units whose lock-in has ended, which NAV applies if my valid redemption request is received at 2:30 p.m. versus 3:30 p.m. on a business day?",
+    "ground_truth": "A valid request received at 2:30 p.m. gets that business day's closing NAV. A request received at 3:30 p.m. gets the next business day's closing NAV.",
+    "reference_contexts": [
+      "HDFC ELSS - Tax Saver Fund: In respect of valid applications received upto 3 p.m. on a Business Day by the Fund, same day's closing NAV shall be applicable.",
+      "HDFC ELSS - Tax Saver Fund: In respect of valid applications received after 3 p.m. on a Business Day by the Fund, the closing NAV of the next Business Day shall be applicable."
+    ],
+    "category": "procedural"
+  },
+  {
+    "id": "q014",
+    "question": "For an online ELSS redemption, does the cut-off depend on when I click submit or when the AMC receives my request?",
+    "ground_truth": "The relevant time is when the request is received on the AMC/RTA servers.",
+    "reference_contexts": [
+      "HDFC ELSS - Tax Saver Fund: The time of transaction done through various online facilities / electronic modes offered by the AMC, for the purpose of determining the applicability of NAV, would be the time when the request for purchase / sale / switch of units is received in the servers of AMC/RTA."
+    ],
+    "category": "procedural"
+  },
+  {
+    "id": "q015",
+    "question": "HDFC ELSS - Tax Saver Fund has no exit load. Does that mean I can normally redeem my investment after one year?",
+    "ground_truth": "No. A nil exit load does not remove the statutory three-year lock-in. Ordinary redemption after only one year is not permitted during that lock-in.",
+    "reference_contexts": [
+      "HDFC ELSS - Tax Saver Fund: An Open-ended Equity Linked Savings Scheme with a statutory lock in of 3 years and tax benefit.",
+      "HDFC ELSS - Tax Saver Fund: A lock-in period is the fixed duration during which investors cannot sell or redeem their investments/Mutual Fund units.",
+      "HDFC ELSS - Tax Saver Fund: H2: Exit Load\nNIL"
+    ],
+    "category": "multi_hop"
+  },
+  {
+    "id": "q016",
+    "question": "What exit load applies if I redeem HDFC Flexi Cap Fund units six months after allotment, compared with eighteen months after allotment?",
+    "ground_truth": "The stated exit load is 1% at six months. No exit load applies at eighteen months, since that is after one year from allotment.",
+    "reference_contexts": [
+      "HDFC Flexi Cap Fund: In respect of each purchase / switch-in of Units, an Exit Load of 1.00% is payable if Units are redeemed / switched-out within 1 year from the date of allotment.",
+      "HDFC Flexi Cap Fund: No Exit Load is payable if Units are redeemed / switched-out after 1 year from the date of allotment."
+    ],
+    "category": "factual"
+  },
+  {
+    "id": "q017",
+    "question": "Does HDFC Large Cap Fund charge an exit load on units allotted through dividend reinvestment?",
+    "ground_truth": "No. The scheme page states that no entry or exit load is levied on bonus units or units allotted through dividend reinvestment.",
+    "reference_contexts": [
+      "HDFC Large Cap Fund: No Entry/Exit Load shall be levied on bonus units and units allotted on dividend reinvestment"
+    ],
+    "category": "factual"
+  },
+  {
+    "id": "q018",
+    "question": "What does IDCW stand for, and is its distribution unconditional?",
+    "ground_truth": "IDCW stands for Income Distribution cum Capital Withdrawal. Distribution is subject to the availability of distributable surplus; it is not unconditional.",
+    "reference_contexts": [
+      "KIM - HDFC Flexi Cap Fund dated November 21, 2025: Income Distribution cum Capital Withdrawal (IDCW) Option",
+      "KIM - HDFC Flexi Cap Fund dated November 21, 2025: Under this Option, it is proposed to declare income / capital Distribution (IDCW) subject to availability of distributable surplus, as computed in accordance with SEBI (MF) Regulations."
+    ],
+    "category": "factual"
+  },
+  {
+    "id": "q019",
+    "question": "Do HDFC Flexi Cap Fund and HDFC ELSS Tax Saver offer the same IDCW facilities?",
+    "ground_truth": "No. The supplied documents list both payout and reinvestment for HDFC Flexi Cap Fund's IDCW option, but only payout for HDFC ELSS Tax Saver's IDCW option.",
+    "reference_contexts": [
+      "KIM - HDFC Flexi Cap Fund dated November 21, 2025: This Option offers following facilities:\n- Payout of IDCW (\"Payout\") and\n- Re-investment of IDCW (\"Re-investment\")",
+      "KIM - HDFC ELSS Tax Saver dated November 21, 2025: This Option offers following facilities:\n- Payout of IDCW (\"Payout\")."
+    ],
+    "category": "multi_hop"
+  },
+  {
+    "id": "q020",
+    "question": "What benchmarks do HDFC Flexi Cap Fund and HDFC Large Cap Fund use?",
+    "ground_truth": "HDFC Flexi Cap Fund uses the NIFTY 500 Total Returns Index. HDFC Large Cap Fund uses the NIFTY 100 Total Returns Index.",
+    "reference_contexts": [
+      "HDFC Flexi Cap Fund: HDFC Flexi Cap Fund is benchmarked against NIFTY 500 Total Returns Index (TRI)",
+      "KIM - HDFC Large Cap Fund dated November 21, 2025: NIFTY 100 Total Returns Index (TRI) (as per AMFI Tier I Benchmark)"
+    ],
+    "category": "multi_hop"
+  },
+  {
+    "id": "q021",
+    "question": "According to the supplied July 2026 factsheets, which had the larger AUM: HDFC Flexi Cap Fund or HDFC Mid Cap Fund?",
+    "ground_truth": "HDFC Flexi Cap Fund had the larger AUM: ₹110,736.41 crore, compared with ₹105,142.69 crore for HDFC Mid Cap Fund.",
+    "reference_contexts": [
+      "Fund Facts - HDFC Flexi Cap Fund - August 2026: July 2026\n\nINR 110,736.41 Cr.",
+      "Fund Facts - HDFC Mid-Cap Fund - August 2026: July 2026\n\nINR 105,142.69 Cr."
+    ],
+    "category": "multi_hop"
+  },
+  {
+    "id": "q022",
+    "question": "Is HDFC Large Cap Fund classified as low risk in the supplied scheme page?",
+    "ground_truth": "No. Its stated Riskometer classification is Very High.",
+    "reference_contexts": [
+      "HDFC Large Cap Fund: Key facts: Inception Date: 11/10/1996 | Riskometer: Very High | Min SIP: ₹ 100"
+    ],
+    "category": "factual"
+  },
+  {
+    "id": "q023",
+    "question": "I need one account statement covering all my folios linked to my PAN. Which statement should I choose, and is there a fee?",
+    "ground_truth": "Choose the PAN-based Account Statement, which consolidates all folios linked to that PAN. Receiving or downloading it is free.",
+    "reference_contexts": [
+      "Download Consolidated Account Statement: PAN-based Account Statement: Consolidated view of all folios linked to the PAN. Folio-based Account Statement: Statement specific to a single folio.",
+      "Download Consolidated Account Statement: No. There is no charge or fee for receiving or downloading your Account Statement."
+    ],
+    "category": "procedural"
+  },
+  {
+    "id": "q024",
+    "question": "When does an account statement become available, and what transactions does it show?",
+    "ground_truth": "It is available once you begin investing and is generated whenever a transaction is processed and units are allotted. It summarizes purchases, redemptions, switches, dividends, and units allotted in the folio.",
+    "reference_contexts": [
+      "Download Consolidated Account Statement: You can download the AS as soon as you begin investing with us. An Account Statement is generated each time a transaction is processed and units are allotted in the investor’s folio.",
+      "Download Consolidated Account Statement: It includes information such as purchases, redemptions, switches, dividends, and the units allotted in the folio."
+    ],
+    "category": "factual"
+  },
+  {
+    "id": "q025",
+    "question": "How can I download a full year of historical NAV data from the AMFI page described in the documents?",
+    "ground_truth": "Use NAV History, select the mutual fund and type, enter the date range, and select Go. Split the year into multiple downloads, because each request permits a maximum of 90 days.",
+    "reference_contexts": [
+      "AMFI Latest NAV / NAV History: NAV History\n(in text format)\nSelect Mutual Fund\nSelect Mutual Fund\nSelect Type\nSelect Type\nFrom Date\nFrom Date\nTo Date\nTo Date\nGo\nNote : One can download historical NAV for a maximum period of 90 days at a time"
+    ],
+    "category": "procedural"
+  },
+  {
+    "id": "q026",
+    "question": "What is the HDFC Flexi Cap Fund Direct Growth NAV for 23 October 2026?",
+    "ground_truth": "The provided documents do not contain a NAV explicitly dated 23 October 2026 for that plan and option, so they do not provide enough information to answer reliably.",
+    "reference_contexts": [],
+    "category": "unanswerable"
+  },
+  {
+    "id": "q027",
+    "question": "Exactly how much will ₹50,000 invested in HDFC Mid Cap Fund be worth five years from now?",
+    "ground_truth": "The provided documents do not contain enough information to determine a future investment value reliably. They do not guarantee future returns or achievement of the investment objective.",
+    "reference_contexts": [
+      "HDFC Mid Cap Fund: Past performance may or may not be sustained in future and is not a guarantee of any future returns.",
+      "Fund Facts - HDFC Mid-Cap Fund - August 2026: There is no assurance that the investment objective of the scheme will be achieved."
+    ],
+    "category": "unanswerable"
+  },
+  {
+    "id": "q028",
+    "question": "How many HDFC ELSS units do I personally own, and when will my units become eligible for redemption?",
+    "ground_truth": "The provided documents do not contain your account holdings or allotment dates, so they do not provide enough information to determine your unit balance or redemption eligibility dates reliably.",
+    "reference_contexts": [],
+    "category": "unanswerable"
+  },
+  {
+    "id": "q029",
+    "question": "I submitted a redemption yesterday. Has it been processed, and what exact amount will reach my bank account?",
+    "ground_truth": "The provided documents do not include your redemption request, transaction status, unit balance, or applicable transaction details. They do not contain enough information to confirm processing or the exact payment amount reliably.",
+    "reference_contexts": [],
+    "category": "unanswerable"
+  },
+  {
+    "id": "q030",
+    "question": "What will the exact IDCW payout per unit be for HDFC ELSS Tax Saver next month?",
+    "ground_truth": "The provided documents do not specify next month's IDCW payout per unit, so they do not contain enough information to answer reliably. IDCW distribution is subject to the availability of distributable surplus.",
+    "reference_contexts": [
+      "KIM - HDFC ELSS Tax Saver dated November 21, 2025: Under this Option, it is proposed to declare income / capital Distribution (IDCW) subject to availability of distributable surplus, as computed in accordance with SEBI (MF) Regulations."
+    ],
+    "category": "unanswerable"
+  }
+]

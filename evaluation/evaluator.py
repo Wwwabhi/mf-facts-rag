@@ -116,6 +116,9 @@ class RAGEvaluator:
         self._init_deepeval()
 
     def _init_deepeval(self) -> None:
+        if self.judge is None:
+            self.has_deepeval = False
+            return
         try:
             from deepeval.metrics import (
                 AnswerRelevancyMetric,
@@ -130,7 +133,7 @@ class RAGEvaluator:
             self.relevancy_metric = AnswerRelevancyMetric(threshold=0.5, model=self.judge)
             self.faithfulness_metric = FaithfulnessMetric(threshold=0.5, model=self.judge)
             self.recall_metric = ContextualRecallMetric(threshold=0.5, model=self.judge)
-        except ImportError:
+        except Exception:
             self.has_deepeval = False
 
     def evaluate_sample(
@@ -179,6 +182,7 @@ class RAGEvaluator:
                 "unsupported",
             }
             or len(sample.reference_contexts) == 0
+            or not execution.decision_allowed
         )
 
         relevancy_score: float | None = None

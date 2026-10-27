@@ -12,7 +12,7 @@ from evaluation.dataset_validator import (
     validate_entry,
 )
 from evaluation.deep_eval_judge import extract_clean_json
-from evaluation.evaluator import RAGEvaluator
+from evaluation.evaluator import EvaluatedSampleResult, RAGEvaluator
 from evaluation.pipeline_runner import (
     PipelineExecutionResult,
     calculate_cost,
@@ -127,3 +127,57 @@ class StatisticsTests(unittest.TestCase):
         self.assertEqual(stats["median"], 30.0)
         self.assertEqual(stats["min"], 10.0)
         self.assertEqual(stats["max"], 50.0)
+
+
+class ReportGenerationTests(unittest.TestCase):
+    def test_generate_reports_creates_html_csv_json_and_plot(self) -> None:
+        from evaluation.reporting import generate_reports
+
+        sample_res = EvaluatedSampleResult(
+            sample_id="q001",
+            question="What is the exit load?",
+            category="factual",
+            ground_truth="1% exit load within 1 year.",
+            actual_output="Exit load is 1% if redeemed within 1 year.",
+            retrieval_context=["HDFC Flexi Cap: Exit load is 1% within 1 year."],
+            source_url="https://files.hdfcfund.com/doc.pdf",
+            source_date="2026-08",
+            decision_allowed=True,
+            decision_category="factual",
+            answer_relevancy_score=1.0,
+            answer_relevancy_reason="Direct answer",
+            faithfulness_score=1.0,
+            faithfulness_reason="Grounded in evidence",
+            contextual_recall_score=1.0,
+            contextual_recall_reason="Complete coverage",
+            retrieval_latency_ms=120.0,
+            generation_latency_ms=850.0,
+            total_latency_ms=970.0,
+            prompt_tokens=320,
+            completion_tokens=45,
+            total_tokens=365,
+            cost_usd=0.000073,
+            status="SUCCESS",
+            error_message=None,
+            retries=0,
+        )
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            csv_path, json_path, plot_path, html_path = generate_reports(
+                results=[sample_res],
+                output_dir=tmp_dir,
+                model_name="qwen/qwen3.8-27b",
+                judge_name="Groq-qwen/qwen3.8-27b",
+                dataset_name="test_dataset.json",
+            )
+            self.assertTrue(csv_path.exists())
+            self.assertTrue(json_path.exists())
+            self.assertTrue(plot_path.exists())
+            self.assertTrue(html_path.exists())
+
+            # Verify report.html has essential elements
+            html_content = html_path.read_text(encoding="utf-8")
+            self.assertIn("Mutual Fund Facts RAG", html_content)
+            self.assertIn("q001", html_content)
+            self.assertIn("What is the exit load?", html_content)
+            self.assertIn("evaluation_visualizations.png", html_content)

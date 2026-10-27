@@ -74,27 +74,46 @@ Before creating the pipeline, we inspected the codebase and identified:
 
 ---
 
-## 🚀 Running Locally
+---
+
+## 🚀 Running Locally (Single Entry Point)
+
+The recommended single entry point for running the evaluation suite is `evaluation.run_all`:
 
 ```bash
 # 1. Install evaluation dependencies
 pip install -r evaluation/requirements-eval.txt
 
-# 2. Run evaluation on test dataset
-python -m evaluation.run_eval --dataset test_dataset.json --output-dir evaluation/outputs
+# 2. Run the complete evaluation workflow
+python -m evaluation.run_all
 ```
 
-### Optional Flags
+This single command automatically:
+1. Validates the test dataset (`test_dataset.json`).
+2. Executes all test cases through the RAG pipeline.
+3. Scores Answer Relevancy, Faithfulness, Contextual Recall with DeepEval.
+4. Generates a standalone, human-readable `report.html` interactive dashboard.
+5. Saves CSV, JSON summary, and PNG visualizations into a timestamped directory (e.g., `evaluation/outputs/run_YYYYMMDD_HHMMSS/`).
+6. Prints a concise terminal summary and the exact report path.
+
+### CLI Flags & Customization
+
 ```bash
 # Run a quick smoke test on 5 samples
-python -m evaluation.run_eval --limit 5
+python -m evaluation.run_all --limit 5
 
 # Use OpenAI as DeepEval judge
-python -m evaluation.run_eval --judge-provider openai --judge-model gpt-4o-mini
+python -m evaluation.run_all --judge-provider openai --judge-model gpt-4o-mini
 
-# Evaluate an external HTTP API
-python -m evaluation.run_eval --mode http_api --api-url http://localhost:8000/api/chat
+# Evaluate an external live HTTP API
+python -m evaluation.run_all --mode http_api --api-url http://localhost:8000/api/chat
+
+# Customize delay to respect strict rate limits
+python -m evaluation.run_all --delay 1.0
 ```
+
+> [!TIP]
+> The legacy evaluation script `python -m evaluation.run_eval` is also preserved and fully functional. Both commands generate the full artifact suite including `report.html`.
 
 ---
 

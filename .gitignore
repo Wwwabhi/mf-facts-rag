@@ -1,12 +1,27 @@
+# Environment & Secrets
 .env
 .env.*
 !.env.example
-.venv/
-__pycache__/
-*.egg-info/
-chroma_db/
-.DS_Store
+*.key
+*.pem
 .streamlit/credentials.toml
+
+# Virtual Environment & Python cache
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.egg-info/
+.pytest_cache/
+.deepeval/
+
+# Data & Vector DB
+chroma_db/
+
+# Evaluation runs & outputs
 evaluation/outputs/*
 !evaluation/outputs/.gitkeep
 *.zip
+
+# System
+.DS_Store

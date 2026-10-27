@@ -263,7 +263,7 @@ def run_evaluation(
 
     # 5. Generate Outputs
     judge_display = f"{judge_provider} ({judge_model})" if judge_instance else "heuristic_fallback"
-    csv_file, json_file, plot_file = generate_reports(
+    csv_file, json_file, plot_file, html_file = generate_reports(
         results=evaluated_results,
         output_dir=output_dir,
         model_name=groq_model,
@@ -283,12 +283,14 @@ def run_evaluation(
     print(f"  • Detailed CSV:      {csv_file}")
     print(f"  • Aggregate JSON:    {json_file}")
     print(f"  • Visualizations:    {plot_file}")
+    print(f"  • HTML Report:       {html_file}")
 
     # 7. Google Colab Download Helper
     if "google.colab" in sys.modules:
         print("\n⬇️  Google Colab environment detected!")
         print("To download the outputs, run:")
         print("  from google.colab import files")
+        print(f"  files.download('{html_file}')")
         print(f"  files.download('{csv_file}')")
         print(f"  files.download('{json_file}')")
         print(f"  files.download('{plot_file}')")

@@ -45,19 +45,21 @@ try:
 except ImportError:
     # If deepeval is not yet installed in local environment, provide a compatible base
     class DeepEvalBaseLLM:  # type: ignore[no-redef]
-        def __init__(self, model_name: str, *args: Any, **kwargs: Any) -> None:
-            self.model_name = model_name
+        def __init__(self, model: str | None = None, *args: Any, **kwargs: Any) -> None:
+            self.model_name = model or kwargs.get("model_name", "")
+            self.name = self.model_name
+            self.model = self.load_model() if hasattr(self, "load_model") else None
 
         def load_model(self) -> Any:
             raise NotImplementedError
 
-        def generate(self, prompt: str, schema: Optional[Type[BaseModel]] = None) -> str | BaseModel:
+        def generate(self, prompt: str, schema: Optional[Type[BaseModel]] = None, *args: Any, **kwargs: Any) -> str | BaseModel:
             raise NotImplementedError
 
-        async def a_generate(self, prompt: str, schema: Optional[Type[BaseModel]] = None) -> str | BaseModel:
+        async def a_generate(self, prompt: str, schema: Optional[Type[BaseModel]] = None, *args: Any, **kwargs: Any) -> str | BaseModel:
             raise NotImplementedError
 
-        def get_model_name(self) -> str:
+        def get_model_name(self, *args: Any, **kwargs: Any) -> str:
             return self.model_name
 
 
@@ -72,13 +74,14 @@ class GroqJudge(DeepEvalBaseLLM):
         max_retries: int = 4,
         rate_limit_delay_seconds: float = 0.5,
     ) -> None:
-        selected_model = model_name or os.getenv("GROQ_MODEL", "qwen/qwen3.8-27b")
-        super().__init__(model_name=selected_model)
+        self.model_name = model_name or os.getenv("GROQ_MODEL", "qwen/qwen3.8-27b")
         self.api_key = (api_key or os.getenv("GROQ_API_KEY", "")).strip()
         self.temperature = temperature
         self.max_retries = max_retries
         self.rate_limit_delay_seconds = rate_limit_delay_seconds
         self._client: Any = None
+        # Call super().__init__ with model parameter required by DeepEvalBaseLLM
+        super().__init__(model=self.model_name)
 
     def load_model(self) -> Any:
         if self._client is None:
@@ -89,10 +92,16 @@ class GroqJudge(DeepEvalBaseLLM):
             self._client = Groq(api_key=self.api_key)
         return self._client
 
-    def get_model_name(self) -> str:
+    def get_model_name(self, *args: Any, **kwargs: Any) -> str:
         return f"Groq-{self.model_name}"
 
-    def generate(self, prompt: str, schema: Optional[Type[BaseModel]] = None) -> str | BaseModel:
+    def generate(
+        self,
+        prompt: str,
+        schema: Optional[Type[BaseModel]] = None,
+        *args: Any,
+        **kwargs: Any,
+    ) -> str | BaseModel:
         client = self.load_model()
 
         if self.rate_limit_delay_seconds > 0:
@@ -122,16 +131,16 @@ class GroqJudge(DeepEvalBaseLLM):
         for attempt in range(self.max_retries + 1):
             try:
                 # Groq Chat Completion with json_object format if schema provided
-                kwargs: dict[str, Any] = {
+                req_kwargs: dict[str, Any] = {
                     "model": self.model_name,
                     "messages": messages,
                     "temperature": self.temperature,
                     "max_tokens": 1024,
                 }
                 if schema is not None:
-                    kwargs["response_format"] = {"type": "json_object"}
+                    req_kwargs["response_format"] = {"type": "json_object"}
 
-                response = client.chat.completions.create(**kwargs)
+                response = client.chat.completions.create(**req_kwargs)
                 raw_text = response.choices[0].message.content or ""
 
                 if schema is not None:
@@ -145,6 +154,9 @@ class GroqJudge(DeepEvalBaseLLM):
                 # If rate limited (HTTP 429), back off exponentially
                 if "429" in err_str or "rate limit" in err_str or "quota" in err_str:
                     wait_time = 2.0 * (2**attempt)
+                    match = re.search(r"try again in ([0-9.]+)s", err_str)
+                    if match:
+                        wait_time = max(wait_time, float(match.group(1)) + 0.5)
                     time.sleep(wait_time)
                 else:
                     time.sleep(1.0)
@@ -152,9 +164,15 @@ class GroqJudge(DeepEvalBaseLLM):
         # If retries exhausted and schema validation failed, raise informative error
         raise RuntimeError(f"GroqJudge failed after {self.max_retries} attempts: {last_error}")
 
-    async def a_generate(self, prompt: str, schema: Optional[Type[BaseModel]] = None) -> str | BaseModel:
+    async def a_generate(
+        self,
+        prompt: str,
+        schema: Optional[Type[BaseModel]] = None,
+        *args: Any,
+        **kwargs: Any,
+    ) -> str | BaseModel:
         # DeepEval async runner falls back to synchronous generate
-        return self.generate(prompt, schema)
+        return self.generate(prompt, schema, *args, **kwargs)
 
 
 class OpenAIJudge(DeepEvalBaseLLM):
@@ -165,9 +183,10 @@ class OpenAIJudge(DeepEvalBaseLLM):
         model_name: str = "gpt-4o-mini",
         api_key: str | None = None,
     ) -> None:
-        super().__init__(model_name=model_name)
+        self.model_name = model_name
         self.api_key = (api_key or os.getenv("OPENAI_API_KEY", "")).strip()
         self._client: Any = None
+        super().__init__(model=self.model_name)
 
     def load_model(self) -> Any:
         if self._client is None:
@@ -178,10 +197,16 @@ class OpenAIJudge(DeepEvalBaseLLM):
             self._client = OpenAI(api_key=self.api_key)
         return self._client
 
-    def get_model_name(self) -> str:
+    def get_model_name(self, *args: Any, **kwargs: Any) -> str:
         return f"OpenAI-{self.model_name}"
 
-    def generate(self, prompt: str, schema: Optional[Type[BaseModel]] = None) -> str | BaseModel:
+    def generate(
+        self,
+        prompt: str,
+        schema: Optional[Type[BaseModel]] = None,
+        *args: Any,
+        **kwargs: Any,
+    ) -> str | BaseModel:
         client = self.load_model()
         messages = [
             {"role": "system", "content": "You are a precise evaluation judge for a RAG system."},
@@ -200,5 +225,12 @@ class OpenAIJudge(DeepEvalBaseLLM):
         )
         return completion.choices[0].message.content or ""
 
-    async def a_generate(self, prompt: str, schema: Optional[Type[BaseModel]] = None) -> str | BaseModel:
-        return self.generate(prompt, schema)
+    async def a_generate(
+        self,
+        prompt: str,
+        schema: Optional[Type[BaseModel]] = None,
+        *args: Any,
+        **kwargs: Any,
+    ) -> str | BaseModel:
+        return self.generate(prompt, schema, *args, **kwargs)
+

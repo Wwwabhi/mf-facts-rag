@@ -74,6 +74,40 @@ class EvaluatedSampleResult:
     error_message: str | None
     retries: int
 
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "sample_id": self.sample_id,
+            "question": self.question,
+            "category": self.category,
+            "ground_truth": self.ground_truth,
+            "actual_output": self.actual_output,
+            "retrieval_context": list(self.retrieval_context),
+            "source_url": self.source_url,
+            "source_date": self.source_date,
+            "decision_allowed": self.decision_allowed,
+            "decision_category": self.decision_category,
+            "answer_relevancy_score": self.answer_relevancy_score,
+            "answer_relevancy_reason": self.answer_relevancy_reason,
+            "faithfulness_score": self.faithfulness_score,
+            "faithfulness_reason": self.faithfulness_reason,
+            "contextual_recall_score": self.contextual_recall_score,
+            "contextual_recall_reason": self.contextual_recall_reason,
+            "retrieval_latency_ms": self.retrieval_latency_ms,
+            "generation_latency_ms": self.generation_latency_ms,
+            "total_latency_ms": self.total_latency_ms,
+            "prompt_tokens": self.prompt_tokens,
+            "completion_tokens": self.completion_tokens,
+            "total_tokens": self.total_tokens,
+            "cost_usd": self.cost_usd,
+            "status": self.status,
+            "error_message": self.error_message,
+            "retries": self.retries,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> EvaluatedSampleResult:
+        return cls(**data)
+
     def to_csv_dict(self) -> dict[str, Any]:
         return {
             "id": self.sample_id,

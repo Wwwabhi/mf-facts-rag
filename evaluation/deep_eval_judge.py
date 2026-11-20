@@ -74,8 +74,18 @@ class GroqJudge(DeepEvalBaseLLM):
         max_retries: int = 4,
         rate_limit_delay_seconds: float = 0.5,
     ) -> None:
-        self.model_name = model_name or os.getenv("GROQ_MODEL", "qwen/qwen3.8-27b")
-        self.api_key = (api_key or os.getenv("GROQ_API_KEY", "")).strip()
+        self.model_name = (
+            model_name
+            or os.getenv("EVAL_JUDGE_MODEL", "")
+            or os.getenv("JUDGE_MODEL", "")
+            or os.getenv("GROQ_MODEL", "qwen/qwen3.8-27b")
+        ).strip()
+        self.api_key = (
+            api_key
+            or os.getenv("EVAL_JUDGE_API_KEY", "")
+            or os.getenv("JUDGE_API_KEY", "")
+            or os.getenv("GROQ_API_KEY", "")
+        ).strip()
         self.temperature = temperature
         self.max_retries = max_retries
         self.rate_limit_delay_seconds = rate_limit_delay_seconds
@@ -154,9 +164,12 @@ class GroqJudge(DeepEvalBaseLLM):
                 # If rate limited (HTTP 429), back off exponentially
                 if "429" in err_str or "rate limit" in err_str or "quota" in err_str:
                     wait_time = 2.0 * (2**attempt)
-                    match = re.search(r"try again in ([0-9.]+)s", err_str)
-                    if match:
-                        wait_time = max(wait_time, float(match.group(1)) + 0.5)
+                    m_min = re.search(r"try again in (?:(\d+)m)?([0-9.]+)s", err_str)
+                    if m_min:
+                        mins = float(m_min.group(1)) if m_min.group(1) else 0.0
+                        secs = float(m_min.group(2)) if m_min.group(2) else 0.0
+                        wait_time = max(wait_time, mins * 60.0 + secs + 0.5)
+                    wait_time = min(wait_time, 30.0)
                     time.sleep(wait_time)
                 else:
                     time.sleep(1.0)

@@ -181,3 +181,92 @@ class ReportGenerationTests(unittest.TestCase):
             self.assertIn("q001", html_content)
             self.assertIn("What is the exit load?", html_content)
             self.assertIn("evaluation_visualizations.png", html_content)
+
+    def test_evaluated_sample_result_dict_roundtrip(self) -> None:
+        sample_res = EvaluatedSampleResult(
+            sample_id="q001",
+            question="What is the exit load?",
+            category="factual",
+            ground_truth="1% exit load.",
+            actual_output="1% within 1 year.",
+            retrieval_context=["Context chunk 1"],
+            source_url="https://www.hdfcfund.com/fund",
+            source_date="2026-09-24",
+            decision_allowed=True,
+            decision_category="factual",
+            answer_relevancy_score=1.0,
+            answer_relevancy_reason="Direct answer",
+            faithfulness_score=1.0,
+            faithfulness_reason="Grounded in evidence",
+            contextual_recall_score=1.0,
+            contextual_recall_reason="Complete coverage",
+            retrieval_latency_ms=120.0,
+            generation_latency_ms=850.0,
+            total_latency_ms=970.0,
+            prompt_tokens=320,
+            completion_tokens=45,
+            total_tokens=365,
+            cost_usd=0.000073,
+            status="SUCCESS",
+            error_message=None,
+            retries=0,
+        )
+        d = sample_res.to_dict()
+        restored = EvaluatedSampleResult.from_dict(d)
+        self.assertEqual(restored.sample_id, sample_res.sample_id)
+        self.assertEqual(restored.question, sample_res.question)
+        self.assertEqual(restored.status, sample_res.status)
+        self.assertEqual(restored.answer_relevancy_score, 1.0)
+
+
+class RunComparisonTests(unittest.TestCase):
+    def test_discover_and_compare_runs(self) -> None:
+        from evaluation.compare_runs import (
+            compute_version_diff,
+            discover_runs,
+            generate_version_dashboard_html,
+        )
+
+        runs = discover_runs("evaluation/outputs")
+        self.assertGreaterEqual(len(runs), 2)
+
+        # Baseline vs Improved
+        run_names = [r["name"] for r in runs]
+        self.assertIn("run_20261027_140012", run_names)
+        self.assertIn("run_phase4_improved", run_names)
+
+        base_run = next(r for r in runs if r["name"] == "run_20261027_140012")
+        target_run = next(r for r in runs if r["name"] == "run_phase4_improved")
+
+        diff = compute_version_diff(base_run, target_run)
+        self.assertEqual(diff["base_run"], "run_20261027_140012")
+        self.assertEqual(diff["target_run"], "run_phase4_improved")
+
+        # Verify quality deltas
+        md = diff["metrics_diff"]
+        self.assertIn("answer_relevancy", md)
+        self.assertIn("contextual_recall", md)
+        self.assertIn("multi_hop_recall", md)
+
+        # Relevancy gained from 0.819 to 1.0
+        self.assertGreater(md["answer_relevancy"]["target_mean"], md["answer_relevancy"]["base_mean"])
+        # Contextual recall gained from 0.688 to 0.867
+        self.assertGreater(md["contextual_recall"]["target_mean"], md["contextual_recall"]["base_mean"])
+        # Multi-hop recall gained from 0.20 to 0.75
+        self.assertGreater(md["multi_hop_recall"]["target_mean"], md["multi_hop_recall"]["base_mean"])
+
+        # Verify HTML generation in temp directory
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            out_html = Path(tmp_dir) / "test_dashboard.html"
+            gen_path = generate_version_dashboard_html(
+                all_runs=runs,
+                base_run_name="run_20261027_140012",
+                target_run_name="run_phase4_improved",
+                output_path=out_html,
+            )
+            self.assertTrue(gen_path.exists())
+            content = gen_path.read_text(encoding="utf-8")
+            self.assertIn("Version-over-Version Evaluation Dashboard", content)
+            self.assertIn("run_20261027_140012", content)
+            self.assertIn("run_phase4_improved", content)
+

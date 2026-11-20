@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -119,7 +120,7 @@ class DirectPipelineRunner:
         question: str,
         ground_truth: str,
         category: str,
-        max_retries: int = 2,
+        max_retries: int = 3,
     ) -> PipelineExecutionResult:
         from src.guardrails.answer_policy import (
             _is_official_url,
@@ -241,7 +242,7 @@ class DirectPipelineRunner:
                                 "Answer using only the supplied evidence. If it does not support the answer, "
                                 "say that the available approved sources cannot verify it. Do not give investment "
                                 "advice, recommendations, performance or returns analysis, or account-specific help. "
-                                "Write no more than three concise sentences. Return answer text only; do not include "
+                                "Write strictly no more than three concise sentences (1 to 3 sentences only). Return answer text only; do not include "
                                 "URLs, citations, source dates, or headings."
                             ),
                         },
@@ -257,8 +258,9 @@ class DirectPipelineRunner:
                 answer_text = (completion.choices[0].message.content or "").strip()
                 if not answer_text:
                     raise ValueError("Groq returned empty text")
-                if len(SENTENCE_BOUNDARY.split(answer_text)) > 3:
-                    raise ValueError("Groq answer exceeded three-sentence limit")
+                sentences = [s.strip() for s in SENTENCE_BOUNDARY.split(answer_text) if s.strip()]
+                if len(sentences) > 3:
+                    answer_text = " ".join(sentences[:3])
 
                 formatted_answer_str = format_answer(answer_text, source_url, source_date)
 
@@ -309,7 +311,18 @@ class DirectPipelineRunner:
             except Exception as exc:
                 last_error = exc
                 retries = attempt + 1
-                time.sleep(1.0 * (2**attempt))
+                err_str = str(exc).lower()
+                if "429" in err_str or "rate limit" in err_str or "quota" in err_str:
+                    wait_time = 2.0 * (2**attempt)
+                    m_min = re.search(r"try again in (?:(\d+)m)?([0-9.]+)s", err_str)
+                    if m_min:
+                        mins = float(m_min.group(1)) if m_min.group(1) else 0.0
+                        secs = float(m_min.group(2)) if m_min.group(2) else 0.0
+                        wait_time = max(wait_time, mins * 60.0 + secs + 0.5)
+                    wait_time = min(wait_time, 90.0)
+                    time.sleep(wait_time)
+                else:
+                    time.sleep(1.0 * (2**attempt))
 
         # If generation retries exhausted
         source_url_ref, source_date_ref = _refusal_source(question, "cannot_verify", retrieved_chunks)
@@ -376,7 +389,7 @@ class HttpApiRunner:
         question: str,
         ground_truth: str,
         category: str,
-        max_retries: int = 2,
+        max_retries: int = 3,
     ) -> PipelineExecutionResult:
         import requests
 
@@ -430,7 +443,18 @@ class HttpApiRunner:
             except Exception as exc:
                 last_error = exc
                 retries = attempt + 1
-                time.sleep(1.0 * (2**attempt))
+                err_str = str(exc).lower()
+                if "429" in err_str or "rate limit" in err_str or "quota" in err_str:
+                    wait_time = 2.0 * (2**attempt)
+                    m_min = re.search(r"try again in (?:(\d+)m)?([0-9.]+)s", err_str)
+                    if m_min:
+                        mins = float(m_min.group(1)) if m_min.group(1) else 0.0
+                        secs = float(m_min.group(2)) if m_min.group(2) else 0.0
+                        wait_time = max(wait_time, mins * 60.0 + secs + 0.5)
+                    wait_time = min(wait_time, 90.0)
+                    time.sleep(wait_time)
+                else:
+                    time.sleep(1.0 * (2**attempt))
 
         total_lat = (time.perf_counter() - t_start) * 1000.0
         return PipelineExecutionResult(

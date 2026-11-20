@@ -16,6 +16,7 @@ Outputs:
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import sys
 import time
@@ -116,6 +117,16 @@ def parse_args() -> argparse.Namespace:
         help="Delay in seconds between judge requests to respect API rate limits",
     )
     parser.add_argument(
+        "--judge-api-key",
+        default=get_secret("EVAL_JUDGE_API_KEY", "") or get_secret("JUDGE_API_KEY", "") or get_secret("GROQ_API_KEY", ""),
+        help="API key for the evaluation judge (defaults to EVAL_JUDGE_API_KEY or GROQ_API_KEY)",
+    )
+    parser.add_argument(
+        "--resume",
+        action="store_true",
+        help="Resume from checkpoint file (eval_checkpoint.json) in run directory",
+    )
+    parser.add_argument(
         "--top-k",
         type=int,
         default=5,
@@ -131,6 +142,7 @@ def run_all(
     mode: str = "direct_pipeline",
     judge_provider: str = "groq",
     judge_model: str = "qwen/qwen3.8-27b",
+    judge_api_key: str | None = None,
     groq_model: str = "qwen/qwen3.8-27b",
     groq_api_key: str | None = None,
     openai_api_key: str | None = None,
@@ -139,6 +151,7 @@ def run_all(
     limit: int | None = None,
     delay: float = 0.5,
     top_k: int = 5,
+    resume: bool = False,
 ) -> dict[str, Any]:
     """Runs the complete RAG evaluation workflow, saving detailed artifacts and human-readable HTML report."""
     from evaluation.dataset_validator import load_and_validate_dataset
@@ -152,6 +165,20 @@ def run_all(
     folder_name = run_name or f"run_{timestamp_str}"
     out_dir = Path(output_base_dir).resolve() / folder_name
     out_dir.mkdir(parents=True, exist_ok=True)
+    checkpoint_file = out_dir / "eval_checkpoint.json"
+    cached_results: dict[str, EvaluatedSampleResult] = {}
+    if resume and checkpoint_file.exists():
+        try:
+            with open(checkpoint_file, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                cached_results = {
+                    item["sample_id"]: EvaluatedSampleResult.from_dict(item)
+                    for item in data
+                    if item.get("status") == "SUCCESS"
+                }
+            print(f"✓ Resuming run: Loaded {len(cached_results)} successful cached results from {checkpoint_file.name}")
+        except Exception as exc:
+            print(f"⚠️  Could not load checkpoint: {exc}")
 
     print("\n" + "=" * 76)
     print("🚀 MUTUAL FUND FACTS RAG — EVALUATION PIPELINE")
@@ -210,15 +237,21 @@ def run_all(
         raise ValueError(f"Unsupported evaluation mode: '{mode}'")
 
     # 4. Initialize Evaluation Judge
+    active_judge_key = (
+        judge_api_key
+        or get_secret("EVAL_JUDGE_API_KEY", "")
+        or get_secret("JUDGE_API_KEY", "")
+        or active_groq_key
+    ).strip()
     judge_instance: Any = None
     if judge_provider == "groq":
-        if not active_groq_key:
-            print("⚠️  Notice: GROQ_API_KEY not configured. Falling back to heuristic quality scoring.")
+        if not active_judge_key:
+            print("⚠️  Notice: Judge API key not configured. Falling back to heuristic quality scoring.")
         else:
             try:
                 judge_instance = GroqJudge(
                     model_name=judge_model,
-                    api_key=active_groq_key,
+                    api_key=active_judge_key,
                     rate_limit_delay_seconds=delay,
                 )
             except Exception as exc:
@@ -244,6 +277,13 @@ def run_all(
     print(f"\n🔍 Executing Evaluation Test Cases (1 to {total_count})...\n")
 
     for idx, sample in enumerate(samples, start=1):
+        if sample.id in cached_results:
+            eval_result = cached_results[sample.id]
+            evaluated_results.append(eval_result)
+            q_snippet = sample.question[:50] + "..." if len(sample.question) > 50 else sample.question
+            print(f"[{idx:02d}/{total_count:02d}] {sample.id} ({sample.category}): \"{q_snippet}\" -> ⚡ [CACHED] {eval_result.status}")
+            continue
+
         q_snippet = sample.question[:50] + "..." if len(sample.question) > 50 else sample.question
         print(f"[{idx:02d}/{total_count:02d}] {sample.id} ({sample.category}): \"{q_snippet}\"", end="", flush=True)
 
@@ -325,6 +365,13 @@ def run_all(
             )
             evaluated_results.append(fallback_eval)
 
+        # Checkpoint to disk after each question
+        try:
+            with open(checkpoint_file, "w", encoding="utf-8") as f:
+                json.dump([r.to_dict() for r in evaluated_results], f, indent=2)
+        except Exception as e:
+            print("CHECKPOINT ERROR:", e)
+
         # Inter-request delay between test cases to respect API RPM
         if delay > 0 and idx < total_count:
             time.sleep(delay)
@@ -348,8 +395,6 @@ def run_all(
         pass
 
     # 7. Print Terminal Summary
-    import json
-
     with open(json_file, "r", encoding="utf-8") as f:
         summary_dict = json.load(f)
 
@@ -363,8 +408,28 @@ def run_all(
     print(f"  • 📁 Results CSV:    file://{csv_file}")
     print(f"  • 📄 Summary JSON:   file://{json_file}")
     print(f"  • 📈 Visualizations: file://{plot_file}")
+
+    # 9. Generate / Update Version-over-Version Dashboard
+    version_dashboard_file = None
+    try:
+        from evaluation.compare_runs import discover_runs, generate_version_dashboard_html
+        runs = discover_runs(output_base_dir)
+        if len(runs) >= 1:
+            version_dashboard_file = generate_version_dashboard_html(
+                all_runs=runs,
+                output_path=Path(output_base_dir) / "version_comparison_dashboard.html",
+            )
+            rel_v_html = os.path.relpath(version_dashboard_file, Path.cwd())
+            print(f"  • 🚀 Version Dashboard: file://{version_dashboard_file}")
+            print(f"                         ({rel_v_html})")
+    except Exception as exc:
+        print(f"⚠️  Could not update version comparison dashboard: {exc}")
+
     print("\n💡 Open the HTML report directly in your browser:")
     print(f"   open {rel_html}\n")
+    if version_dashboard_file:
+        print("💡 Open the version-over-version dashboard:")
+        print(f"   open {rel_v_html}\n")
 
     return {
         "run_dir": out_dir,
@@ -385,12 +450,14 @@ def main() -> None:
         mode=args.mode,
         judge_provider=args.judge_provider,
         judge_model=args.judge_model,
+        judge_api_key=args.judge_api_key,
         groq_model=args.groq_model,
         api_url=args.api_url,
         api_token=args.api_token,
         limit=args.limit,
         delay=args.delay,
         top_k=args.top_k,
+        resume=args.resume,
     )
 
 

@@ -85,7 +85,7 @@ def generate_answer(
                         "Answer using only the supplied evidence. If it does not support the answer, "
                         "say that the available approved sources cannot verify it. Do not give investment "
                         "advice, recommendations, performance or returns analysis, or account-specific help. "
-                        "Write no more than three concise sentences. Return answer text only; do not include "
+                        "Write strictly no more than three concise sentences (1 to 3 sentences only). Return answer text only; do not include "
                         "URLs, citations, source dates, or headings."
                     ),
                 },
@@ -101,6 +101,7 @@ def generate_answer(
     answer_text = answer_text.strip()
     if not answer_text:
         raise ValueError("Groq returned an empty answer")
-    if len(SENTENCE_BOUNDARY.split(answer_text)) > 3:
-        raise ValueError("Groq answer exceeded the three-sentence limit")
+    sentences = [s.strip() for s in SENTENCE_BOUNDARY.split(answer_text) if s.strip()]
+    if len(sentences) > 3:
+        answer_text = " ".join(sentences[:3])
     return format_answer(answer_text, source_url, source_date)

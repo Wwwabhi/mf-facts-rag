@@ -368,5 +368,61 @@ class QueryPipelineTests(unittest.TestCase):
         generator.assert_not_called()
 
 
+class MultiHopRetrievalTests(unittest.TestCase):
+    def test_extract_mentioned_schemes(self) -> None:
+        from src.retrieval.rerank import extract_mentioned_schemes
+
+        # Multi-scheme
+        q2 = "What were HDFC Large Cap Fund and HDFC Mid Cap Fund previously called?"
+        self.assertEqual(extract_mentioned_schemes(q2), ["HDFC Large Cap Fund", "HDFC Mid Cap Fund"])
+
+        # All four schemes
+        q4 = "Can I start a 100 SIP in each of the four HDFC funds?"
+        self.assertEqual(
+            extract_mentioned_schemes(q4),
+            ["HDFC Flexi Cap Fund", "HDFC Large Cap Fund", "HDFC Mid Cap Fund", "HDFC ELSS - Tax Saver Fund"],
+        )
+
+        # Single scheme
+        q1 = "What is the exit load for HDFC Flexi Cap Fund?"
+        self.assertEqual(extract_mentioned_schemes(q1), ["HDFC Flexi Cap Fund"])
+
+        # Zero schemes (general query)
+        q0 = "What does NAV mean, and how is it calculated?"
+        self.assertEqual(extract_mentioned_schemes(q0), [])
+
+    def test_synonym_lexical_matching_formerly_known(self) -> None:
+        from src.retrieval.rerank import _synonym_lexical_score, _terms
+
+        query_terms = _terms("What were HDFC Large Cap Fund and HDFC Mid Cap Fund previously called?")
+        content_terms = _terms("HDFC Large Cap Fund (Formerly known as HDFC Top 100 Fund)")
+
+        score = _synonym_lexical_score(query_terms, content_terms)
+        self.assertGreater(score, 0.4)
+
+    def test_rerank_balances_schemes_in_multihop_queries(self) -> None:
+        candidates = [
+            # 4 chunks from Large Cap
+            {"chunk_id": f"large-{i}", "content": f"Large Cap details {i}", "metadata": {"source_id": "6", "scheme": "HDFC Large Cap Fund"}, "distance": 0.10 + i * 0.01}
+            for i in range(4)
+        ] + [
+            # 4 chunks from Mid Cap (slightly further vector distance)
+            {"chunk_id": f"mid-{i}", "content": f"Mid Cap details {i}", "metadata": {"source_id": "10", "scheme": "HDFC Mid Cap Fund"}, "distance": 0.20 + i * 0.01}
+            for i in range(4)
+        ]
+
+        question = "What were HDFC Large Cap Fund and HDFC Mid Cap Fund previously called?"
+        reranked = rerank_chunks(question, candidates, top_k=6)
+
+        schemes_in_top = [c["metadata"]["scheme"] for c in reranked]
+        self.assertIn("HDFC Large Cap Fund", schemes_in_top)
+        self.assertIn("HDFC Mid Cap Fund", schemes_in_top)
+        # Ensure both schemes are represented in the top results
+        large_count = schemes_in_top.count("HDFC Large Cap Fund")
+        mid_count = schemes_in_top.count("HDFC Mid Cap Fund")
+        self.assertGreaterEqual(large_count, 2)
+        self.assertGreaterEqual(mid_count, 2)
+
+
 if __name__ == "__main__":
     unittest.main()

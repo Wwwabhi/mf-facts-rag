@@ -21,6 +21,11 @@ chroma_db/
 # Evaluation runs & outputs
 evaluation/outputs/*
 !evaluation/outputs/.gitkeep
+!evaluation/outputs/run_20261027_135608/
+!evaluation/outputs/run_20261027_140012/
+!evaluation/outputs/run_phase4_improved/
+!evaluation/outputs/version_comparison_dashboard.html
+!evaluation/outputs/latest_run.txt
 *.zip
 
 # System

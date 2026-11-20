@@ -4,7 +4,7 @@ import re
 from dataclasses import dataclass
 from urllib.parse import urlsplit, urlunsplit
 
-from src.guardrails.pii_guard import detect_sensitive_data, is_account_specific_request
+from src.guardrails.pii_guard import GENERAL_STATEMENT_HELP, detect_sensitive_data, is_account_specific_request
 from src.guardrails.refusal_templates import REFUSAL_MESSAGES
 from src.guardrails.scope_checker import unsupported_reason
 
@@ -51,7 +51,7 @@ def classify_question(question: str) -> GuardrailDecision:
         return _blocked("privacy", f"Sensitive data detected: {sensitive_category}.")
     if is_account_specific_request(question):
         return _blocked("account_specific", "The question requests personal account or folio information.")
-    if any(pattern.search(question) for pattern in ADVICE_PATTERNS):
+    if not GENERAL_STATEMENT_HELP.search(question) and any(pattern.search(question) for pattern in ADVICE_PATTERNS):
         return _blocked("investment_advice", "The question requests investment advice or a buy/sell recommendation.")
     if any(pattern.search(question) for pattern in PERFORMANCE_PATTERNS):
         return _blocked("performance_returns", "Performance and returns questions are outside the supported answer policy.")

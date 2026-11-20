@@ -2,7 +2,9 @@
 
 A facts-only mutual-fund FAQ assistant in a Groww product context. This repository currently covers selected HDFC Asset Management Company schemes; it is not an integration with Groww accounts or services.
 
-Live Demo - https://mf-facts-rag-ls8ctphagmcvyenzujm8mv.streamlit.app/
+- **Live Demo**: [Streamlit Cloud App](https://mf-facts-rag-ls8ctphagmcvyenzujm8mv.streamlit.app/)
+- **Product Analytics Dashboard**: [evaluation/outputs/version_comparison_dashboard.html](evaluation/outputs/version_comparison_dashboard.html)
+- **Evaluation Improvement Docs**: [docs/eval_improvements/](docs/eval_improvements/README.md)
 
 ## Coverage
 
@@ -34,27 +36,53 @@ The current chunk snapshot contains 1,602 chunks. Chunks retain source, scheme, 
 - Groq chat completions using the configured `GROQ_MODEL` (the example defaults to `qwen/qwen3.8-27b`)
 - Streamlit UI; `python-dotenv` for project-root environment loading
 
-## Setup
+## Installation & Setup
 
-From the project root:
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/Wwwabhi/mf-facts-rag.git
+cd mf-facts-rag
+```
+
+### 2. Create Virtual Environment
 
 ```bash
 python3.12 -m venv .venv
 source .venv/bin/activate
-python -m pip install -e .
 ```
 
-Create `.env` if it does not already exist, then set `GROQ_API_KEY` and `GROQ_MODEL`:
+### 3. Install Dependencies
+
+```bash
+# Core application package
+pip install -e .
+
+# Evaluation benchmark suite (DeepEval, Matplotlib, Pandas, etc.)
+pip install -r evaluation/requirements-eval.txt
+```
+
+### 4. Configure Environment Variables
+
+Create `.env` if it does not already exist:
 
 ```bash
 if [ ! -f .env ]; then cp .env.example .env; fi
 ```
 
-Keep the API key in `.env`; `.gitignore` excludes it. Do not commit credentials.
+Set your Groq API credentials in `.env`:
 
-`CHROMA_DB_PATH` is optional and defaults to `vectorstore/chroma_db`; set it in `.env` to use another persistent location. On first Streamlit startup, the app checks the configured collection and builds it from `data/chunks/chunks.jsonl` when missing or empty. This check/build is cached for the Streamlit process.
+```env
+GROQ_API_KEY="your-groq-api-key"
+GROQ_MODEL="qwen/qwen3.8-27b"
+CHROMA_DB_PATH="vectorstore/chroma_db"
+```
 
-To rebuild chunks and embeddings from processed documents manually:
+> [!NOTE]
+> Keep your API key in `.env`; `.gitignore` excludes it. Do not commit credentials.
+> `CHROMA_DB_PATH` is optional and defaults to `vectorstore/chroma_db`. On first Streamlit startup, the app checks the configured collection and automatically builds it from `data/chunks/chunks.jsonl` if missing or empty.
+
+To manually rebuild chunks and vector embeddings from raw documents:
 
 ```bash
 python -m src.chunking.chunker
@@ -78,9 +106,13 @@ Ask a factual question in the app. For a retrieval-only terminal check that does
 python -m src.retrieval.cli --retrieve-only --top-k 5 "What is the exit load for HDFC Flexi Cap Fund?"
 ```
 
-Run the automated tests with:
+Run the automated tests with `pytest` or `unittest`:
 
 ```bash
+# Run all unit tests (65 tests across deployment, evaluation, guardrails, and retrieval)
+pytest -v
+
+# Or using standard unittest
 python -m unittest discover -v
 ```
 
@@ -91,6 +123,79 @@ python -m scripts.generate_sample_qa
 ```
 
 This makes live Groq requests for questions allowed by the guardrails and only replaces the sample file if all ten pipeline responses include verified source metadata. The unit tests mock the Groq client; they do not make live API requests.
+
+## 📊 How to Check Evaluation Results (For Yourself)
+
+You can inspect the evaluation results, benchmark metrics, and version-over-version improvements in three complementary ways:
+
+### Method 1: Instant Interactive Product Analytics Dashboard (Recommended — No Setup Required)
+
+The repository includes a pre-rendered, standalone, light-theme product analytics dashboard that compares the baseline RAG pipeline ($V_2$) against our improved candidate pipeline ($V_3$) and historical pilot ($V_1$).
+
+To view the dashboard immediately in your default browser:
+
+```bash
+open evaluation/outputs/version_comparison_dashboard.html
+```
+
+Or regenerate / re-compare runs dynamically at any time:
+
+```bash
+python -m evaluation.compare_runs
+```
+
+#### What the Dashboard Shows:
+- **30-Second Executive Health Card**: High-level answers to whether the system is improving, which quality dimensions gained, where regressions occurred, and latency/cost trade-offs.
+- **Section A (Executive Overview)**:
+  - **Answer Relevance**: `0.8190 ➔ 1.0000` (+22.1% rel / +0.1810 abs) 🟢
+  - **Contextual Recall**: `0.6875 ➔ 0.8667` (+26.1% rel / +0.1792 abs) 🟢
+  - **Multi-Hop Recall**: `0.2000 ➔ 0.7500` (+275.0% rel / +0.5500 abs) 🟢
+  - **Faithfulness**: `0.9792 ➔ 0.9722` (High grounding, near-zero hallucination) ⚪
+  - **Secondary Metrics**: Multi-hop Recall, Retrieval $P_{50}$ (619 ms), Total $P_{50}$ / $P_{95}$ latency, and evaluation token costs.
+- **Section B (Quality Comparison)**: Grouped horizontal bar chart on a strict 0.0 to 1.0 scale with exact score labels and deltas.
+- **Section C (Version History)**: Interactive multi-series line chart tracking historical metric progression ($V_1 \to V_2 \to V_3$) with toggleable metric chips.
+- **Section D (Test Category Performance)**: Stacked bar chart showing passed vs failed test cases and pass percentages across Factual, Multi-Hop, Procedural, and Unanswerable queries.
+- **Section E (Latency Analysis)**: Statistical box plots with median ($P_{50}$), interquartile ranges ($Q_1 \to Q_3$), whiskers, and outlier scatter points for Retrieval, Generation, and Total latency.
+- **Section F (Quality vs. Latency)**: Scatter plot highlighting the *Fast & High Quality* sweet-spot quadrant and flagging outliers.
+- **Section G (Failure Analysis Matrix)**: Comprehensive diagnostic table with filter tabs (`All`, `Improvements Only`, `Failures / Rate Limits`, `Fixed In This Version`, `Clean Passes`), live search, root cause tags, and a side-by-side diff modal.
+- **CSV Export**: Click "Export Comparison CSV" at the top right to download the complete comparison spreadsheet.
+
+---
+
+### Method 2: In-Depth Technical Improvement Documentation
+
+We have documented the end-to-end diagnosis, architectural solutions, and evaluation results in the `docs/eval_improvements/` directory:
+
+| Document | Focus & Highlights |
+| :--- | :--- |
+| [README.md](docs/eval_improvements/README.md) | Executive summary, metric scorecard, and roadmap of improvements. |
+| [01_baseline_and_issue_taxonomy.md](docs/eval_improvements/01_baseline_and_issue_taxonomy.md) | Granular autopsy of the initial benchmark run ($V_2$), identifying guardrail over-blocking, multi-hop retrieval drop-offs, and sentence-splitter crashes. |
+| [02_guardrail_false_positive_fixes.md](docs/eval_improvements/02_guardrail_false_positive_fixes.md) | Policy updates eliminating 100% of false-positive guardrail refusals (`q002`, `q005`, `q010`, `q015`, `q023`). |
+| [03_multi_hop_retrieval_enhancements.md](docs/eval_improvements/03_multi_hop_retrieval_enhancements.md) | Multi-hop query decomposition, hybrid BM25 + dense vector search, and Reciprocal Rank Fusion (RRF). |
+| [04_eval_harness_and_rate_limits.md](docs/eval_improvements/04_eval_harness_and_rate_limits.md) | Production hardening: Groq HTTP 429 exponential backoff, checkpoint persistence (`--resume`), and decoupled judge API keys. |
+| [05_step_by_step_implementation_plan.md](docs/eval_improvements/05_step_by_step_implementation_plan.md) | Phased roll-out plan across guardrails, retrieval, generation, and verification. |
+| [06_post_implementation_eval_results.md](docs/eval_improvements/06_post_implementation_eval_results.md) | Final comparative analysis between baseline ($V_2$) and improved candidate ($V_3$). |
+
+---
+
+### Method 3: Run a Fresh Evaluation Benchmark Yourself
+
+You can execute the automated evaluation benchmark on the 30-sample test suite ([test_dataset.json](test_dataset.json)):
+
+```bash
+# 1. Quick smoke test (e.g. first 3 questions)
+python -m evaluation.run_all --limit 3
+
+# 2. Full benchmark run with 1.0s delay between calls
+python -m evaluation.run_all --delay 1.0
+
+# 3. Resume an interrupted benchmark from checkpoint
+python -m evaluation.run_all --resume --delay 1.0
+```
+
+The runner automatically invokes `compare_runs.py` at the end of the evaluation and updates `evaluation/outputs/version_comparison_dashboard.html`.
+
+---
 
 ## Evaluation Workflow
 

@@ -1,0 +1,136 @@
+{
+  "metadata": {
+    "timestamp": "2026-10-27T08:27:01.983177+00:00",
+    "dataset": "test_dataset.json",
+    "total_samples": 2,
+    "successful_executions": 2,
+    "failed_executions": 0,
+    "target_model": "qwen/qwen3.8-27b",
+    "judge_model": "groq (qwen/qwen3.8-27b)"
+  },
+  "quality_metrics": {
+    "answer_relevancy": {
+      "count": 2,
+      "mean": 0.5,
+      "median": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "p90": 0.9,
+      "p95": 0.95
+    },
+    "faithfulness": {
+      "count": 2,
+      "mean": 0.5,
+      "median": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "p90": 0.9,
+      "p95": 0.95,
+      "unanswerable_na_count": 0
+    },
+    "contextual_recall": {
+      "count": 2,
+      "mean": 0.5,
+      "median": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "p90": 0.9,
+      "p95": 0.95,
+      "unanswerable_na_count": 0
+    }
+  },
+  "latency_metrics_ms": {
+    "retrieval": {
+      "count": 2,
+      "mean": 18896.8929,
+      "median": 18896.8929,
+      "min": 0.0,
+      "max": 37793.7859,
+      "p90": 34014.4073,
+      "p95": 35904.0966
+    },
+    "generation": {
+      "count": 2,
+      "mean": 476.9979,
+      "median": 476.9979,
+      "min": 0.0,
+      "max": 953.9958,
+      "p90": 858.5962,
+      "p95": 906.296
+    },
+    "total": {
+      "count": 2,
+      "mean": 19393.9279,
+      "median": 19393.9279,
+      "min": 3.3363,
+      "max": 38784.5195,
+      "p90": 34906.4011,
+      "p95": 36845.4603
+    }
+  },
+  "token_usage_and_costs": {
+    "total_prompt_tokens": 794,
+    "total_completion_tokens": 49,
+    "total_tokens": 843,
+    "estimated_cost_usd": 0.000169,
+    "cost_calculated": true
+  },
+  "category_breakdown": {
+    "factual": {
+      "total_questions": 2,
+      "relevancy": {
+        "count": 2,
+        "mean": 0.5,
+        "median": 0.5,
+        "min": 0.0,
+        "max": 1.0,
+        "p90": 0.9,
+        "p95": 0.95
+      },
+      "faithfulness": {
+        "count": 2,
+        "mean": 0.5,
+        "median": 0.5,
+        "min": 0.0,
+        "max": 1.0,
+        "p90": 0.9,
+        "p95": 0.95
+      },
+      "contextual_recall": {
+        "count": 2,
+        "mean": 0.5,
+        "median": 0.5,
+        "min": 0.0,
+        "max": 1.0,
+        "p90": 0.9,
+        "p95": 0.95
+      },
+      "total_latency_ms": {
+        "count": 2,
+        "mean": 19393.9279,
+        "median": 19393.9279,
+        "min": 3.3363,
+        "max": 38784.5195,
+        "p90": 34906.4011,
+        "p95": 36845.4603
+      }
+    }
+  },
+  "failed_or_low_scoring_questions": [
+    {
+      "id": "q002",
+      "category": "factual",
+      "question": "How is a flexi cap fund different from a multi cap fund?",
+      "ground_truth": "Flexi cap funds have flexibility to allocate across market capitalizations, whereas multi cap funds must follow SEBI-defined minimum allocations for each market segment.",
+      "actual_output": "I can only answer factual mutual fund questions within the supported source scope. This question is outside that scope.",
+      "status": "SUCCESS",
+      "error_message": null,
+      "retrieved_context": [],
+      "reasons": {
+        "relevancy": "The score is 0.00 because the response consists entirely of meta-commentary claiming the question is out of scope, failing to provide any factual information or comparison regarding the differences between flexi cap and multi cap funds as requested.",
+        "faithfulness": "No chunks retrieved; response cannot be faithful to evidence.",
+        "recall": "No context was retrieved for an answerable question."
+      }
+    }
+  ]
+}

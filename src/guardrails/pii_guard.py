@@ -15,7 +15,13 @@ SENSITIVE_VALUE_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
         "account_number",
         re.compile(r"\b(?:account|acct|folio)\s*(?:number|no\.?|#)\s*[:#=-]?\s*\d[\d -]{4,20}\b", re.IGNORECASE),
     ),
-    ("personal_identifier", re.compile(r"\bmy\s+(?:PAN|Aadhaar|OTP|phone number|email|bank details?)\b", re.IGNORECASE)),
+    (
+        "personal_identifier",
+        re.compile(
+            r"(?<!linked to\s)(?<!under\s)(?<!using\s)(?<!against\s)(?<!based on\s)\bmy\s+(?:PAN|Aadhaar|OTP|phone number|email|bank details?)\b",
+            re.IGNORECASE,
+        ),
+    ),
 )
 
 PERSONAL_ACCOUNT_PATTERNS = (
@@ -32,7 +38,14 @@ PERSONAL_ACCOUNT_PATTERNS = (
 )
 
 GENERAL_STATEMENT_HELP = re.compile(
-    r"^\s*how\s+(?:can|do|would)\s+i\s+(?:download|access|get|obtain)\b.{0,100}\b(?:account|consolidated|capital gains)\s+statement\b",
+    r"(?:how\s+(?:can|do|would)\s+i\s+(?:download|access|get|obtain|choose)\b.{0,100}\b(?:account|consolidated|capital gains)?\s*statement\b|"
+    r"i\s+(?:need|want)\s+(?:an?|one)?\s*(?:account|consolidated|capital gains)?\s*statement|"
+    r"which\s+statement\s+(?:should|can|do)\s+i\s+(?:choose|select|request|download))",
+    re.IGNORECASE,
+)
+
+SCHEME_RULE_QUERY = re.compile(
+    r"\b(?:normally|ordinarily)\s+redeem\b|\b(?:can|may)\s+(?:i|one|an investor)\s+(?:normally|ordinarily)?\s*redeem\b.{0,60}\b(?:lock[- ]?in|after\s+\w+\s+years?|exit load)\b",
     re.IGNORECASE,
 )
 
@@ -46,5 +59,7 @@ def detect_sensitive_data(query: str) -> str | None:
 
 def is_account_specific_request(query: str) -> bool:
     if GENERAL_STATEMENT_HELP.search(query):
+        return False
+    if SCHEME_RULE_QUERY.search(query):
         return False
     return any(pattern.search(query) for pattern in PERSONAL_ACCOUNT_PATTERNS)

@@ -29,11 +29,51 @@ SUPPORTED_TOPIC = re.compile(
 
 FUND_MENTION = re.compile(r"\b((?:[a-z0-9&'.-]+\s+){0,4}funds?)\b", re.IGNORECASE)
 FUND_FILLER_WORDS = {
-    "a", "an", "and", "about", "are", "buy", "cap", "does", "expense", "for", "hdfc",
-    "how", "in", "is", "of", "on", "please", "ratio", "sell", "should", "the", "what",
-    "which", "with",
+    "a", "an", "and", "about", "all", "any", "are", "both", "buy", "cap", "does", "each",
+    "ended", "equity", "expense", "for", "four", "growth", "hdfc", "how", "in", "is",
+    "mutual", "of", "on", "open", "other", "our", "please", "ratio", "sell", "should",
+    "the", "these", "this", "what", "which", "with",
 }
 GENERIC_FUND_NAMES = {"fund", "mutual fund", "mutual funds"}
+
+GENERIC_CATEGORIES = {
+    "multi cap fund",
+    "multi cap funds",
+    "multicap fund",
+    "multicap funds",
+    "large cap fund",
+    "large cap funds",
+    "mid cap fund",
+    "mid cap funds",
+    "small cap fund",
+    "small cap funds",
+    "flexi cap fund",
+    "flexi cap funds",
+    "elss fund",
+    "elss funds",
+    "elss tax saver fund",
+    "elss tax saver funds",
+    "tax saver fund",
+    "tax saver funds",
+    "index fund",
+    "index funds",
+    "equity fund",
+    "equity funds",
+    "debt fund",
+    "debt funds",
+    "hybrid fund",
+    "hybrid funds",
+    "liquid fund",
+    "liquid funds",
+    "open ended fund",
+    "open ended funds",
+}
+
+KNOWN_AMCS = {
+    "hdfc", "sbi", "icici", "axis", "kotak", "nippon", "uti", "aditya birla",
+    "tata", "mirae", "dsp", "franklin", "motilal", "parag parikh", "quant",
+    "bandhan", "canara robeco", "hsbc", "invesco", "sundaram",
+}
 
 
 def _normalize_words(text: str) -> str:
@@ -47,8 +87,16 @@ def _has_unsupported_fund_mention(query: str) -> bool:
             continue
         if any(phrase == scheme or phrase.endswith(f" {scheme}") for scheme in SUPPORTED_SCHEMES):
             continue
-        meaningful_words = [word for word in phrase.split() if word not in FUND_FILLER_WORDS and word != "fund"]
-        if meaningful_words:
+        # If it's a generic SEBI category without an AMC prefix, it's not an unsupported scheme
+        words = phrase.split()
+        has_amc = any(word in KNOWN_AMCS for word in words)
+        if not has_amc and any(phrase == cat or phrase.endswith(f" {cat}") for cat in GENERIC_CATEGORIES):
+            continue
+        scheme_specific_words = [
+            word for word in words
+            if word not in FUND_FILLER_WORDS and word not in KNOWN_AMCS and word not in ("fund", "funds")
+        ]
+        if scheme_specific_words:
             return True
     return False
 

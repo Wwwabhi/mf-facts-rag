@@ -53,6 +53,31 @@ class GuardrailClassificationTests(unittest.TestCase):
         self.assertFalse(decision.allowed)
         self.assertEqual(decision.category, "unsupported")
 
+    def test_sebi_category_comparison_is_allowed(self) -> None:
+        decision = classify_question("How is a flexi cap fund different from a multi cap fund?")
+        self.assertTrue(decision.allowed)
+        self.assertEqual(decision.category, "factual")
+
+    def test_generic_aum_definition_is_allowed(self) -> None:
+        decision = classify_question("What does a mutual fund's AUM represent?")
+        self.assertTrue(decision.allowed)
+        self.assertEqual(decision.category, "factual")
+
+    def test_four_hdfc_funds_sip_question_is_allowed(self) -> None:
+        decision = classify_question("According to the supplied scheme pages, can I start a ₹100 SIP in each of the four HDFC funds?")
+        self.assertTrue(decision.allowed)
+        self.assertEqual(decision.category, "factual")
+
+    def test_elss_lockin_rule_question_is_allowed(self) -> None:
+        decision = classify_question("HDFC ELSS - Tax Saver Fund has no exit load. Does that mean I can normally redeem my investment after one year?")
+        self.assertTrue(decision.allowed)
+        self.assertEqual(decision.category, "factual")
+
+    def test_pan_linked_statement_inquiry_is_allowed(self) -> None:
+        decision = classify_question("I need one account statement covering all my folios linked to my PAN. Which statement should I choose, and is there a fee?")
+        self.assertTrue(decision.allowed)
+        self.assertEqual(decision.category, "factual")
+
 
 class GuardedDispatchTests(unittest.TestCase):
     def test_blocked_questions_never_reach_retrieval_or_llm(self) -> None:

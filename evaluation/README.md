@@ -110,10 +110,38 @@ python -m evaluation.run_all --mode http_api --api-url http://localhost:8000/api
 
 # Customize delay to respect strict rate limits
 python -m evaluation.run_all --delay 1.0
+
+# Resume an interrupted benchmark run from checkpoint
+python -m evaluation.run_all --resume
 ```
 
-> [!TIP]
-> The legacy evaluation script `python -m evaluation.run_eval` is also preserved and fully functional. Both commands generate the full artifact suite including `report.html`.
+---
+
+## 📈 Version-over-Version Evaluation Dashboard
+
+To compare multiple evaluation runs across model releases, prompt changes, guardrail updates, or retrieval improvements:
+
+```bash
+# Automatically discover all runs and generate the comparative dashboard
+python -m evaluation.compare_runs
+
+# Compare specific baseline and candidate runs
+python -m evaluation.compare_runs --base run_20261027_140012 --target run_phase4_improved
+
+# Automatically open the dashboard in your default browser
+python -m evaluation.compare_runs --open
+```
+
+### Dashboard Capabilities:
+1. **Interactive Version Switcher**: Dynamically select any pair of runs ($V_A$ vs. $V_B$) from dropdowns without reloading.
+2. **KPI Deltas with Trend Badges**: High-level comparison cards showing Relevancy, Recall, Multi-Hop Recall, Faithfulness, Success Rates, and Latency.
+3. **Interactive Charts**: Grouped bar charts comparing metrics across versions, category-by-category recall, latency profiles, and score delta distributions.
+4. **Question-by-Question Diff Matrix**: Complete 30-sample matrix with filters (Improved 🟢, Regressed 🔴, Multi-Hop, Guardrails, Failures).
+5. **Side-by-Side Diff Drawer**: Click any question to inspect the exact prompt evidence, generated answer, and DeepEval judge reasons between versions.
+6. **CSV Export**: One-click download of the complete comparison spreadsheet.
+
+Generated dashboard location:
+[`evaluation/outputs/version_comparison_dashboard.html`](outputs/version_comparison_dashboard.html)
 
 ---
 

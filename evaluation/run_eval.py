@@ -10,6 +10,7 @@ Run in Google Colab:
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import sys
 import time
@@ -124,6 +125,16 @@ def parse_args() -> argparse.Namespace:
         help="URL of live HTTP API (when mode=http_api)",
     )
     parser.add_argument(
+        "--judge-api-key",
+        default=get_secret("EVAL_JUDGE_API_KEY", "") or get_secret("JUDGE_API_KEY", "") or get_secret("GROQ_API_KEY", ""),
+        help="API key for judge",
+    )
+    parser.add_argument(
+        "--resume",
+        action="store_true",
+        help="Resume from checkpoint file in output-dir if present",
+    )
+    parser.add_argument(
         "--limit",
         type=int,
         default=None,
@@ -144,6 +155,7 @@ def run_evaluation(
     output_dir: str = DEFAULT_OUTPUT_DIR,
     judge_provider: str = DEFAULT_JUDGE_PROVIDER,
     judge_model: str = DEFAULT_JUDGE_MODEL,
+    judge_api_key: str | None = None,
     groq_model: str = DEFAULT_GROQ_MODEL,
     groq_api_key: str = DEFAULT_GROQ_API_KEY,
     openai_api_key: str = DEFAULT_OPENAI_API_KEY,
@@ -151,6 +163,7 @@ def run_evaluation(
     api_auth_token: str = DEFAULT_API_AUTH_TOKEN,
     limit: int | None = None,
     judge_delay: float = DEFAULT_JUDGE_DELAY,
+    resume: bool = False,
 ) -> None:
     from evaluation.dataset_validator import load_and_validate_dataset
     from evaluation.deep_eval_judge import GroqJudge, OpenAIJudge
@@ -214,7 +227,13 @@ def run_evaluation(
     # 3. DeepEval Judge Setup
     judge_instance = None
     if judge_provider == "groq":
-        active_key = groq_api_key or os.getenv("GROQ_API_KEY", "")
+        active_key = (
+            judge_api_key
+            or os.getenv("EVAL_JUDGE_API_KEY", "")
+            or os.getenv("JUDGE_API_KEY", "")
+            or groq_api_key
+            or os.getenv("GROQ_API_KEY", "")
+        ).strip()
         if not active_key:
             print("⚠️  Warning: GROQ_API_KEY is not set. DeepEval judge will use heuristic fallback.")
         else:
@@ -235,12 +254,37 @@ def run_evaluation(
 
     evaluator = RAGEvaluator(judge_model=judge_instance)
 
-    # 4. Execute and Evaluate
+    # 4. Checkpoint Loading
+    output_path = Path(output_dir)
+    output_path.mkdir(parents=True, exist_ok=True)
+    checkpoint_file = output_path / "eval_checkpoint.json"
+
+    cached_results: dict[str, EvaluatedSampleResult] = {}
+    if resume and checkpoint_file.exists():
+        try:
+            with open(checkpoint_file, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                cached_results = {
+                    item["sample_id"]: EvaluatedSampleResult.from_dict(item)
+                    for item in data
+                    if item.get("status") == "SUCCESS"
+                }
+            print(f"✓ Resuming run: Loaded {len(cached_results)} successful cached results from {checkpoint_file.name}")
+        except Exception as exc:
+            print(f"⚠️  Could not load checkpoint: {exc}")
+
+    # 5. Execute and Evaluate
     evaluated_results: list[EvaluatedSampleResult] = []
     total = len(samples_to_run)
 
     print("\n🔍 Running Evaluation Test Cases...")
     for idx, sample in enumerate(samples_to_run, start=1):
+        if sample.id in cached_results:
+            eval_result = cached_results[sample.id]
+            evaluated_results.append(eval_result)
+            print(f"[{idx:02d}/{total:02d}] {sample.id} ({sample.category}): {sample.question[:55]}... -> ⚡ [CACHED] {eval_result.status}")
+            continue
+
         print(f"[{idx:02d}/{total:02d}] {sample.id} ({sample.category}): {sample.question[:55]}...", end="", flush=True)
 
         # Run question through chatbot
@@ -255,11 +299,21 @@ def run_evaluation(
         eval_result = evaluator.evaluate_sample(sample, exec_result)
         evaluated_results.append(eval_result)
 
+        # Save checkpoint to disk
+        try:
+            with open(checkpoint_file, "w", encoding="utf-8") as f:
+                json.dump([r.to_dict() for r in evaluated_results], f, indent=2)
+        except Exception:
+            pass
+
         # Quick inline feedback
         rel = f"Rel={eval_result.answer_relevancy_score:.2f}" if eval_result.answer_relevancy_score is not None else "Rel=N/A"
         faith = f"Faith={eval_result.faithfulness_score:.2f}" if eval_result.faithfulness_score is not None else "Faith=N/A"
         lat = f"{eval_result.total_latency_ms:.0f}ms"
         print(f" -> {exec_result.status} ({rel}, {faith}, {lat})")
+
+        if judge_delay > 0 and idx < total:
+            time.sleep(judge_delay)
 
     # 5. Generate Outputs
     judge_display = f"{judge_provider} ({judge_model})" if judge_instance else "heuristic_fallback"
@@ -272,8 +326,6 @@ def run_evaluation(
     )
 
     # 6. Read Summary and Print CLI Overview
-    import json
-
     with open(json_file, "r", encoding="utf-8") as f:
         summary_dict = json.load(f)
 
@@ -304,8 +356,10 @@ if __name__ == "__main__":
         output_dir=args.output_dir,
         judge_provider=args.judge_provider,
         judge_model=args.judge_model,
+        judge_api_key=args.judge_api_key,
         groq_model=args.groq_model,
         api_url=args.api_url,
         limit=args.limit,
         judge_delay=args.delay,
+        resume=args.resume,
     )

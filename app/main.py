@@ -208,9 +208,9 @@ def main() -> None:
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 10px 0 24px 0;
+            padding: 4px 0 16px 0;
             border-bottom: 1px solid var(--border-light);
-            margin-bottom: 2rem;
+            margin-bottom: 1.5rem;
             width: 100%;
         }
 
@@ -223,24 +223,35 @@ def main() -> None:
         .groww-brand {
             display: inline-flex;
             align-items: center;
-            gap: 8px;
-            font-size: 22px;
+            gap: 10px;
+            font-size: 20px;
             font-weight: 800;
-            color: var(--groww-slate);
+            color: #132336;
             text-decoration: none;
-            letter-spacing: -0.03em;
+            letter-spacing: -0.02em;
+        }
+
+        .groww-logo-circle {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: #00875A;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
         }
 
         .facts-tag {
-            background: var(--groww-emerald-subtle);
-            color: var(--groww-emerald-dark);
+            background: #ECFCF5;
+            color: #00875A;
             font-size: 11px;
             font-weight: 700;
-            padding: 4px 10px;
+            padding: 3px 10px;
             border-radius: 20px;
             display: inline-flex;
             align-items: center;
-            gap: 5px;
+            gap: 6px;
             letter-spacing: 0.04em;
         }
 
@@ -248,25 +259,25 @@ def main() -> None:
             width: 6px;
             height: 6px;
             border-radius: 50%;
-            background: var(--groww-emerald);
+            background: #00D09C;
         }
 
         .nav-center {
             display: flex;
             align-items: center;
-            gap: 28px;
+            gap: 32px;
         }
 
         .nav-link {
             font-size: 14px;
             font-weight: 500;
-            color: var(--text-secondary);
+            color: #64748B;
             text-decoration: none;
             transition: color 0.15s ease;
         }
 
         .nav-link.active {
-            color: var(--groww-emerald-dark);
+            color: #00875A;
             font-weight: 600;
         }
 
@@ -277,12 +288,12 @@ def main() -> None:
         }
 
         .avatar-circle {
-            width: 32px;
-            height: 32px;
+            width: 28px;
+            height: 28px;
             border-radius: 50%;
             background: #0B132B;
             color: #FFFFFF;
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 700;
             display: flex;
             align-items: center;
@@ -983,6 +994,41 @@ def main() -> None:
         st.error(f"Unable to prepare the local knowledge index: {exc}")
         return
 
+    # Full-width Top Navigation Bar spanning across sidebar and canvas
+    st.markdown(
+        """
+        <div class="top-navbar">
+            <div class="nav-left">
+                <a href="#" class="groww-brand">
+                    <div class="groww-logo-circle">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline>
+                            <polyline points="16 7 22 7 22 13"></polyline>
+                        </svg>
+                    </div>
+                    <span>Groww</span>
+                </a>
+                <div class="facts-tag">
+                    <span class="facts-tag-dot"></span> FACTS AI
+                </div>
+            </div>
+            <div class="nav-center">
+                <a href="#" class="nav-link active">Explore</a>
+                <a href="#" class="nav-link">Mutual Funds</a>
+                <a href="#" class="nav-link">Tools</a>
+            </div>
+            <div class="nav-right">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#64748B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                    <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                </svg>
+                <div class="avatar-circle">IN</div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
     # Two column layout: Left Sidebar (width 1) and Main Canvas (width 3.8)
     sidebar_col, main_col = st.columns([1, 3.8], gap="large")
 
@@ -1027,39 +1073,6 @@ def main() -> None:
 
     # ------------------ MAIN CANVAS ------------------
     with main_col:
-        # Top Navigation Bar
-        st.markdown(
-            """
-            <div class="top-navbar">
-                <div class="nav-left">
-                    <a href="#" class="groww-brand">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#00D09C" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline>
-                            <polyline points="16 7 22 7 22 13"></polyline>
-                        </svg>
-                        <span>Groww</span>
-                    </a>
-                    <div class="facts-tag">
-                        <span class="facts-tag-dot"></span> FACTS AI
-                    </div>
-                </div>
-                <div class="nav-center">
-                    <a href="#" class="nav-link active">Explore</a>
-                    <a href="#" class="nav-link">Mutual Funds</a>
-                    <a href="#" class="nav-link">Tools</a>
-                </div>
-                <div class="nav-right">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#64748B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-                        <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-                    </svg>
-                    <div class="avatar-circle">IN</div>
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-
         # Main Canvas Content: Conditional State Switcher
         if st.session_state.get("active_response"):
             # STATE 2: QUESTION ENTERED / VERIFIED ANSWER DISPLAYED

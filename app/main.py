@@ -13,6 +13,7 @@ from src.config import settings
 from src.guardrails.refusal_templates import FACTS_ONLY_DISCLAIMER
 from src.llm.groq_client import GroqRequestError
 from src.retrieval.query_pipeline import QueryResponse, answer_question
+from src.retrieval.retrieve import extract_mentioned_schemes
 from src.vectorstore.index_manager import compute_index_fingerprint, ensure_index
 
 
@@ -139,6 +140,9 @@ def main() -> None:
     )
 
     # Initialize session state keys
+    if st.session_state.pop("clear_question_input", False):
+        st.session_state["question_input"] = ""
+
     if "question_input" not in st.session_state:
         st.session_state["question_input"] = ""
     if "active_response" not in st.session_state:
@@ -1126,12 +1130,34 @@ def main() -> None:
                         use_container_width=True,
                     )
 
+        # In State 2 (Answer returned), configure targeted follow-up placeholder
+        if st.session_state.get("active_response"):
+            last_q = st.session_state.get("last_asked_question", "")
+            schemes = extract_mentioned_schemes(last_q) if last_q else []
+            if schemes:
+                scheme_clean = schemes[0].replace(" - ", " ")
+                followup_ph = f"Ask a follow-up fact about {scheme_clean}..."
+            else:
+                followup_ph = "Ask a follow-up fact about HDFC ELSS Tax Saver Fund..."
+            escaped_ph = followup_ph.replace('"', '\\"')
+            st.markdown(
+                f"""
+                <style>
+                [data-testid="stTextInputRootElement"] div[data-baseweb="base-input"]::before {{
+                    content: "{escaped_ph}" !important;
+                    animation: none !important;
+                }}
+                </style>
+                """,
+                unsafe_allow_html=True,
+            )
+
         # Space pushing search bar to the bottom
         search_spacer = "search-area-normal" if st.session_state.get("active_response") else "search-area-bottom"
         st.markdown(f'<div class="{search_spacer}"></div>', unsafe_allow_html=True)
 
         # Floating Pill Search Bar Form at the bottom
-        with st.form("question_form", clear_on_submit=False):
+        with st.form("question_form", clear_on_submit=True):
             search_cols = st.columns([8.2, 1.8], gap="small")
             with search_cols[0]:
                 question = st.text_input(
@@ -1169,6 +1195,7 @@ def main() -> None:
                     response = answer_question(active_query)
                 st.session_state["active_response"] = response
                 st.session_state["last_asked_question"] = active_query
+                st.session_state["clear_question_input"] = True
                 st.rerun()
             except GroqRequestError as exc:
                 st.error(str(exc))

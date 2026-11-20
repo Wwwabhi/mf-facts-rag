@@ -469,11 +469,11 @@ def main() -> None:
         /* Floating Pill Search Bar Form */
         [data-testid="stForm"] {
             background: #FFFFFF !important;
-            border: 1.5px solid #E2E8F0 !important;
-            border-radius: 36px !important;
+            border: 1.5px solid #EAECF0 !important;
+            border-radius: 16px !important;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04) !important;
-            padding: 6px 8px 6px 20px !important;
-            margin-top: 2.25rem !important;
+            padding: 6px 8px 6px 14px !important;
+            margin-top: 1.5rem !important;
             width: 100% !important;
             box-sizing: border-box !important;
             transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
@@ -504,11 +504,39 @@ def main() -> None:
             color: var(--text-primary) !important;
         }
 
+        /* Input row with left search/tune icon and right mic icon */
         [data-testid="stTextInputRootElement"] div[data-baseweb="input"] {
             padding: 0 !important;
             min-height: 48px !important;
             background: #FFFFFF !important;
             background-color: #FFFFFF !important;
+            display: flex !important;
+            align-items: center !important;
+        }
+
+        /* Far-left search/tune icon */
+        [data-testid="stTextInputRootElement"] div[data-baseweb="input"]::before {
+            content: "";
+            display: inline-block;
+            width: 19px;
+            height: 19px;
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="%2364748B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="11" y2="6"/><line x1="3" y1="12" x2="9" y2="12"/><line x1="3" y1="18" x2="11" y2="18"/><circle cx="16" cy="12" r="3.5"/><line x1="18.5" y1="14.5" x2="21" y2="17"/></svg>') center/contain no-repeat;
+            margin-right: 10px;
+            margin-left: 2px;
+            flex-shrink: 0;
+        }
+
+        /* Right microphone icon */
+        [data-testid="stTextInputRootElement"] div[data-baseweb="input"]::after {
+            content: "";
+            display: inline-block;
+            width: 18px;
+            height: 18px;
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="%2364748B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>') center/contain no-repeat;
+            margin-right: 12px;
+            margin-left: 6px;
+            flex-shrink: 0;
+            cursor: pointer;
         }
 
         [data-testid="stTextInputRootElement"] div[data-baseweb="base-input"] {
@@ -517,37 +545,57 @@ def main() -> None:
             align-items: center !important;
             background: #FFFFFF !important;
             background-color: #FFFFFF !important;
-            border-radius: 30px !important;
+            border-radius: 12px !important;
+            flex: 1 !important;
+        }
+
+        /* ⌘K keyboard shortcut badge */
+        [data-testid="stTextInputRootElement"] div[data-baseweb="base-input"]::after {
+            content: "⌘K";
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: #F1F5F9;
+            color: #64748B;
+            font-size: 12px;
+            font-weight: 600;
+            padding: 3px 8px;
+            border-radius: 6px;
+            letter-spacing: 0.02em;
+            pointer-events: none;
+            z-index: 3;
         }
 
         [data-testid="stTextInputRootElement"] input {
             color: var(--text-primary) !important;
             background: #FFFFFF !important;
             background-color: #FFFFFF !important;
-            font-size: 15px !important;
+            font-size: 14.5px !important;
             font-weight: 500 !important;
             caret-color: var(--groww-emerald-dark) !important;
             padding-left: 0 !important;
+            padding-right: 56px !important;
             min-height: 48px !important;
             position: relative;
             z-index: 2;
-            border-radius: 30px !important;
+            border-radius: 12px !important;
         }
 
         /* Suggested Questions Smooth Animation in Searchbar */
         @keyframes smoothQuestionSlide {
             0% {
-                content: "Ask a mutual fund fact (e.g., exit load for Parag Parikh Flexi Cap)...";
+                content: "Ask a follow-up fact about HDFC ELSS Tax Saver Fund...";
                 opacity: 0;
                 transform: translateY(calc(-50% + 10px));
             }
             2%, 17% {
-                content: "Ask a mutual fund fact (e.g., exit load for Parag Parikh Flexi Cap)...";
+                content: "Ask a follow-up fact about HDFC ELSS Tax Saver Fund...";
                 opacity: 1;
                 transform: translateY(-50%);
             }
             19.5% {
-                content: "Ask a mutual fund fact (e.g., exit load for Parag Parikh Flexi Cap)...";
+                content: "Ask a follow-up fact about HDFC ELSS Tax Saver Fund...";
                 opacity: 0;
                 transform: translateY(calc(-50% - 10px));
             }
@@ -612,14 +660,14 @@ def main() -> None:
                 transform: translateY(calc(-50% - 10px));
             }
             100% {
-                content: "Ask a mutual fund fact (e.g., exit load for Parag Parikh Flexi Cap)...";
+                content: "Ask a follow-up fact about HDFC ELSS Tax Saver Fund...";
                 opacity: 0;
                 transform: translateY(calc(-50% + 10px));
             }
         }
 
         [data-testid="stTextInputRootElement"] div[data-baseweb="base-input"]::before {
-            content: "Ask a mutual fund fact (e.g., exit load for Parag Parikh Flexi Cap)...";
+            content: "Ask a follow-up fact about HDFC ELSS Tax Saver Fund...";
             position: absolute;
             left: 2px;
             top: 50%;
@@ -631,7 +679,7 @@ def main() -> None:
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            max-width: calc(100% - 140px);
+            max-width: calc(100% - 70px);
             z-index: 1;
             animation: smoothQuestionSlide 20s cubic-bezier(0.2, 0.8, 0.2, 1) infinite;
         }
@@ -644,11 +692,11 @@ def main() -> None:
             animation: none !important;
         }
 
-        /* Ask Facts AI Button (Green Pill) */
+        /* Ask Facts AI Button (Green Rounded Rect) */
         .st-key-ask_button button {
             background: var(--groww-emerald-dark) !important;
             color: #FFFFFF !important;
-            border-radius: 30px !important;
+            border-radius: 12px !important;
             border: none !important;
             min-height: 44px !important;
             height: 44px !important;

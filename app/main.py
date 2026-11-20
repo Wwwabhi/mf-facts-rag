@@ -484,25 +484,46 @@ def main() -> None:
             box-shadow: 0 6px 24px rgba(0, 208, 156, 0.14) !important;
         }
 
-        /* Input Element Inside Searchbar */
+        /* Input Element Inside Searchbar - Pure White Fill */
+        .stTextInput,
+        .stTextInput > div,
+        .stTextInput > div > div,
+        [data-testid="stTextInput"],
+        [data-testid="stTextInput"] > div,
+        [data-testid="stTextInput"] > div > div,
+        [data-testid="stTextInputRootElement"],
         [data-testid="stTextInputRootElement"] > div,
-        [data-testid="stTextInputRootElement"] div[data-baseweb="input"] {
+        [data-testid="stTextInputRootElement"] div[data-baseweb="input"],
+        [data-testid="stTextInputRootElement"] div[data-baseweb="base-input"],
+        [data-testid="stTextInputRootElement"] input {
             border: none !important;
-            background: transparent !important;
+            background: #FFFFFF !important;
+            background-color: #FFFFFF !important;
             box-shadow: none !important;
+            outline: none !important;
+            color: var(--text-primary) !important;
+        }
+
+        [data-testid="stTextInputRootElement"] div[data-baseweb="input"] {
             padding: 0 !important;
             min-height: 48px !important;
+            background: #FFFFFF !important;
+            background-color: #FFFFFF !important;
         }
 
         [data-testid="stTextInputRootElement"] div[data-baseweb="base-input"] {
             position: relative !important;
             display: flex !important;
             align-items: center !important;
+            background: #FFFFFF !important;
+            background-color: #FFFFFF !important;
+            border-radius: 30px !important;
         }
 
         [data-testid="stTextInputRootElement"] input {
             color: var(--text-primary) !important;
-            background: transparent !important;
+            background: #FFFFFF !important;
+            background-color: #FFFFFF !important;
             font-size: 15px !important;
             font-weight: 500 !important;
             caret-color: var(--groww-emerald-dark) !important;
@@ -510,6 +531,7 @@ def main() -> None:
             min-height: 48px !important;
             position: relative;
             z-index: 2;
+            border-radius: 30px !important;
         }
 
         /* Suggested Questions Smooth Animation in Searchbar */

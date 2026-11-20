@@ -55,6 +55,22 @@ def _get_scheme_name(question: str) -> str:
 
 
 def _display_response(response: QueryResponse, question_text: str = "") -> None:
+    # 1. User Inquiry Bubble on top right (Matching Reference Image)
+    if question_text:
+        st.markdown(
+            f"""
+            <div class="user-inquiry-wrapper">
+                <div class="inquiry-timestamp">YOUR INQUIRY • Just now</div>
+                <div class="user-inquiry-row">
+                    <div class="user-inquiry-bubble">{question_text}</div>
+                    <div class="inquiry-avatar">IN</div>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    # 2. Verified Answer Card
     st.markdown(
         f"""
         <div class="verified-answer-card">
@@ -71,27 +87,47 @@ def _display_response(response: QueryResponse, question_text: str = "") -> None:
         unsafe_allow_html=True,
     )
 
-    if response.source_url and response.source_date:
-        st.link_button(
-            "Open official source",
-            response.source_url,
-            key="source_link",
-            icon=":material/open_in_new:",
+    # 3. Card Bottom Action Row (Source Button + Feedback Strip)
+    action_cols = st.columns([1, 1], gap="small")
+    with action_cols[0]:
+        if response.source_url:
+            st.link_button(
+                "Open official source",
+                response.source_url,
+                key="source_link",
+                icon=":material/open_in_new:",
+            )
+        elif response.decision.allowed:
+            st.info("The available approved sources could not verify this answer.")
+    with action_cols[1]:
+        st.markdown(
+            """
+            <div class="feedback-strip">
+                <span class="feedback-label">Was this factual?</span>
+                <button type="button" class="feedback-btn" onclick="this.classList.toggle('active')">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 10v12"/><path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2h0a3.13 3.13 0 0 1 3 3.88Z"/></svg>
+                    Helpful
+                </button>
+                <button type="button" class="feedback-btn" onclick="this.classList.toggle('active')">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 14V2"/><path d="M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L12 22h0a3.13 3.13 0 0 1-3-3.88Z"/></svg>
+                </button>
+            </div>
+            """,
+            unsafe_allow_html=True,
         )
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    # 4. Source date outside the card
+    if response.source_date:
         st.markdown(
             f"""
-            </div>
             <div class="source-date-outside">
                 Last updated from sources: {response.source_date}
             </div>
             """,
             unsafe_allow_html=True,
         )
-    elif response.decision.allowed:
-        st.info("The available approved sources could not verify this answer.")
-        st.markdown("</div>", unsafe_allow_html=True)
-    else:
-        st.markdown("</div>", unsafe_allow_html=True)
 
 
 def main() -> None:
@@ -801,6 +837,108 @@ def main() -> None:
             margin-top: 10px;
             margin-left: 6px;
             margin-bottom: 0.5rem;
+        }
+
+        /* User Inquiry Bubble (Top Right) */
+        .user-inquiry-wrapper {
+            margin-top: 0.5rem;
+            margin-bottom: 2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            width: 100%;
+        }
+
+        .inquiry-timestamp {
+            font-size: 11px;
+            font-weight: 600;
+            color: #94A3B8;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            margin-right: 44px;
+        }
+
+        .user-inquiry-row {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 12px;
+            width: 100%;
+        }
+
+        .user-inquiry-bubble {
+            background: #F4F6FB;
+            border: 1px solid #E2E8F0;
+            border-radius: 16px 16px 4px 16px;
+            padding: 12px 20px;
+            font-size: 15px;
+            font-weight: 500;
+            color: var(--text-primary);
+            max-width: 680px;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02);
+            line-height: 1.45;
+        }
+
+        .inquiry-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: #0B132B;
+            color: #FFFFFF;
+            font-size: 12px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            letter-spacing: 0.02em;
+        }
+
+        /* Feedback Strip (Was this factual? Helpful / Unhelpful) */
+        .feedback-strip {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 8px;
+            height: 100%;
+            padding-top: 4px;
+        }
+
+        .feedback-label {
+            font-size: 12px;
+            color: #94A3B8;
+            font-weight: 500;
+            margin-right: 4px;
+        }
+
+        .feedback-btn {
+            background: #FFFFFF;
+            border: 1px solid #E2E8F0;
+            border-radius: 8px;
+            padding: 7px 12px;
+            font-size: 12px;
+            font-weight: 500;
+            color: #64748B;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+        }
+
+        .feedback-btn:hover {
+            border-color: #CBD5E1;
+            background: #F8FAFC;
+            color: var(--text-primary);
+        }
+
+        .feedback-btn.active {
+            border-color: var(--groww-emerald);
+            background: var(--groww-emerald-subtle);
+            color: var(--groww-emerald-dark);
+            font-weight: 600;
         }
 
         [data-testid="stLinkButton"] a {

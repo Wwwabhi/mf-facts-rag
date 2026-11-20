@@ -41,47 +41,57 @@ def _select_example(question: str) -> None:
     st.session_state["auto_submit"] = question
 
 
+def _get_scheme_name(question: str) -> str:
+    q_lower = question.lower()
+    if "elss" in q_lower or "tax saver" in q_lower:
+        return "HDFC ELSS Tax Saver Fund"
+    elif "flexi cap" in q_lower:
+        return "HDFC Flexi Cap Fund"
+    elif "mid-cap" in q_lower or "mid cap" in q_lower or "midcap" in q_lower:
+        return "HDFC Mid-Cap Opportunities Fund"
+    elif "top 100" in q_lower or "large cap" in q_lower:
+        return "HDFC Top 100 Fund"
+    return "HDFC schemes"
+
+
 def _display_response(response: QueryResponse, question_text: str = "") -> None:
-    with st.container():
+    st.markdown(
+        f"""
+        <div class="verified-answer-card">
+            <div class="verified-badge">
+                <span class="verified-dot"></span> FACTS AI VERIFIED ANSWER
+            </div>
+            <div class="verified-question">
+                {question_text}
+            </div>
+            <div class="verified-answer-text">
+                {response.answer or ''}
+            </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    if response.source_url and response.source_date:
+        st.link_button(
+            "Open official source",
+            response.source_url,
+            key="source_link",
+            icon=":material/open_in_new:",
+        )
         st.markdown(
             f"""
-            <div class="response-card">
-                <div class="response-header">
-                    <div class="response-tag">
-                        <span class="response-dot"></span> FACTS AI VERIFIED ANSWER
-                    </div>
-                </div>
-                <div class="response-body">
+            </div>
+            <div class="source-date-outside">
+                Last updated from sources: {response.source_date}
+            </div>
             """,
             unsafe_allow_html=True,
         )
-        if question_text:
-            st.markdown(f'<div class="query-bubble">{question_text}</div>', unsafe_allow_html=True)
-
-        if response.answer:
-            st.markdown(f'<div class="answer-content">{response.answer}</div>', unsafe_allow_html=True)
-
-        if response.source_url and response.source_date:
-            st.markdown('<div class="source-action-row">', unsafe_allow_html=True)
-            st.link_button(
-                "Open official source",
-                response.source_url,
-                key="source_link",
-                icon=":material/open_in_new:",
-            )
-            st.markdown(
-                f'<span class="source-date">Last updated from sources: {response.source_date}</span>'
-                '</div>',
-                unsafe_allow_html=True,
-            )
-        elif response.decision.allowed:
-            st.info("The available approved sources could not verify this answer.")
-
-        st.markdown(
-            f'<div class="response-disclaimer">{FACTS_ONLY_DISCLAIMER}</div>'
-            '</div></div>',
-            unsafe_allow_html=True,
-        )
+    elif response.decision.allowed:
+        st.info("The available approved sources could not verify this answer.")
+        st.markdown("</div>", unsafe_allow_html=True)
+    else:
+        st.markdown("</div>", unsafe_allow_html=True)
 
 
 def main() -> None:
@@ -733,99 +743,89 @@ def main() -> None:
             margin-top: 14px;
         }
 
-        /* Response Card */
-        .response-card {
+        /* Verified Answer Card (Matching Reference Image) */
+        .verified-answer-card {
             background: #FFFFFF;
-            border: 1.5px solid var(--border-light);
-            border-radius: 20px;
-            padding: 24px;
-            margin-top: 2rem;
-            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.05);
-            transition: all 0.2s ease;
+            border: 1.5px solid #EAECF0;
+            border-radius: 24px;
+            padding: 36px 40px 32px 40px;
+            margin-top: 1rem;
+            margin-bottom: 0.25rem;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.03);
+            width: 100%;
+            box-sizing: border-box;
         }
 
-        .response-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 14px;
-        }
-
-        .response-tag {
-            background: var(--groww-emerald-subtle);
-            color: var(--groww-emerald-dark);
+        .verified-badge {
+            background: #E8F8F3;
+            color: #00875A;
             font-size: 11px;
             font-weight: 700;
-            padding: 4px 10px;
-            border-radius: 12px;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            padding: 5px 12px;
+            border-radius: 20px;
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            letter-spacing: 0.04em;
+            margin-bottom: 22px;
         }
 
-        .response-dot {
+        .verified-dot {
             width: 6px;
             height: 6px;
             border-radius: 50%;
-            background: var(--groww-emerald);
+            background: #00D09C;
         }
 
-        .query-bubble {
-            font-size: 15px;
-            font-weight: 600;
-            color: var(--text-primary);
-            padding: 10px 14px;
-            background: #F8FAFC;
-            border-radius: 10px;
-            margin-bottom: 16px;
-            border-left: 3px solid var(--groww-emerald);
+        .verified-question {
+            font-size: 22px;
+            font-weight: 700;
+            color: #1E2229;
+            line-height: 1.35;
+            border-left: 3.5px solid #00D09C;
+            padding-left: 14px;
+            margin: 0 0 20px 0;
         }
 
-        .answer-content {
-            font-size: 15px;
-            line-height: 1.65;
-            color: #334155;
-            margin-bottom: 18px;
+        .verified-answer-text {
+            font-size: 15.5px;
+            line-height: 1.7;
+            color: #475569;
+            margin: 0 0 26px 0;
         }
 
-        .source-action-row {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            margin-top: 14px;
-            padding-top: 14px;
-            border-top: 1px solid var(--border-light);
+        .source-date-outside {
+            font-size: 12px;
+            color: #94A3B8;
+            margin-top: 10px;
+            margin-left: 6px;
+            margin-bottom: 0.5rem;
         }
 
         [data-testid="stLinkButton"] a {
-            background: var(--groww-emerald-subtle) !important;
-            border: 1px solid rgba(0, 208, 156, 0.3) !important;
-            border-radius: 8px !important;
-            color: var(--groww-emerald-dark) !important;
-            font-size: 13px !important;
+            background: #F2FBF8 !important;
+            border: 1.5px solid #00D09C !important;
+            border-radius: 10px !important;
+            color: #00875A !important;
+            font-size: 13.5px !important;
             font-weight: 600 !important;
-            padding: 6px 14px !important;
+            padding: 9px 18px !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            gap: 8px !important;
+            box-shadow: none !important;
             transition: all 0.15s ease !important;
         }
 
         [data-testid="stLinkButton"] a:hover {
-            background: rgba(0, 208, 156, 0.18) !important;
-            border-color: var(--groww-emerald) !important;
-            color: var(--groww-emerald-dark) !important;
+            background: #E6FBF5 !important;
+            border-color: #00875A !important;
+            color: #00704A !important;
         }
 
-        .source-date {
-            font-size: 12px;
-            color: var(--text-secondary);
-        }
-
-        .response-disclaimer {
-            font-size: 11.5px;
-            color: var(--text-muted);
-            margin-top: 14px;
-            padding-top: 10px;
-            border-top: 1px dashed var(--border-light);
+        .legal-notice {
+            display: none;
         }
 
         @media (max-width: 900px) {
@@ -922,43 +922,60 @@ def main() -> None:
             unsafe_allow_html=True,
         )
 
-        # Hero Greeting & Subtitle
-        st.markdown(
-            """
-            <div class="hero-section">
-                <h1 class="hero-title">Hello, <span class="hero-highlight">Investor</span></h1>
-                <p class="hero-subtitle">Ask any factual question about mutual funds, exit loads, expense ratios, or statutory rules.</p>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-
-        # 4 Prompt Cards Grid
-        card_cols = st.columns(4)
-        card_titles = (
-            "Explain Scheme Exit Loads",
-            "Inspect Statutory SID & KIM",
-            "Compare Direct vs Regular TER",
-            "Analyze Rolling Returns & Risk",
-        )
-        for idx, (title, query) in enumerate(zip(card_titles, EXAMPLE_QUESTIONS)):
-            with card_cols[idx]:
-                st.button(
-                    title,
-                    key=f"card_{idx}",
-                    on_click=_select_example,
-                    args=(query,),
-                    use_container_width=True,
-                )
-
-        # Display active response above the search bar if present
+        # Main Canvas Content: Conditional State Switcher
         if st.session_state.get("active_response"):
+            # STATE 2: QUESTION ENTERED / VERIFIED ANSWER DISPLAYED
             _display_response(
                 st.session_state["active_response"],
                 question_text=st.session_state.get("last_asked_question", ""),
             )
 
-        # Space pushing search bar to the bottom on initial screen
+            # In follow-up state, update searchbar placeholder to match reference image
+            followup_scheme = _get_scheme_name(st.session_state.get("last_asked_question", ""))
+            st.markdown(
+                f"""
+                <style>
+                [data-testid="stTextInputRootElement"] div[data-baseweb="base-input"]::before {{
+                    content: "Ask a follow-up fact about {followup_scheme}..." !important;
+                    animation: none !important;
+                    opacity: 1 !important;
+                    transform: translateY(-50%) !important;
+                }}
+                </style>
+                """,
+                unsafe_allow_html=True,
+            )
+        else:
+            # STATE 1: INITIAL GREETING & 4 PROMPT CARDS
+            st.markdown(
+                """
+                <div class="hero-section">
+                    <h1 class="hero-title">Hello, <span class="hero-highlight">Investor</span></h1>
+                    <p class="hero-subtitle">Ask any factual question about mutual funds, exit loads, expense ratios, or statutory rules.</p>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+            # 4 Prompt Cards Grid
+            card_cols = st.columns(4)
+            card_titles = (
+                "Explain Scheme Exit Loads",
+                "Inspect Statutory SID & KIM",
+                "Compare Direct vs Regular TER",
+                "Analyze Rolling Returns & Risk",
+            )
+            for idx, (title, query) in enumerate(zip(card_titles, EXAMPLE_QUESTIONS)):
+                with card_cols[idx]:
+                    st.button(
+                        title,
+                        key=f"card_{idx}",
+                        on_click=_select_example,
+                        args=(query,),
+                        use_container_width=True,
+                    )
+
+        # Space pushing search bar to the bottom
         search_spacer = "search-area-normal" if st.session_state.get("active_response") else "search-area-bottom"
         st.markdown(f'<div class="{search_spacer}"></div>', unsafe_allow_html=True)
 

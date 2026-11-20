@@ -18,8 +18,16 @@ from src.vectorstore.index_manager import compute_index_fingerprint, ensure_inde
 
 EXAMPLE_QUESTIONS = (
     "What is the exit load for HDFC Flexi Cap Fund?",
+    "Where can I find the statutory SID and KIM for HDFC schemes?",
+    "Compare Direct vs Regular TER for HDFC Top 100 Fund",
     "What is the lock-in period for HDFC ELSS Tax Saver Fund?",
-    "Should I invest in HDFC Flexi Cap Fund?",
+)
+
+RECENT_INQUIRIES = (
+    ("Parag Parikh Flexi Cap Exit L...", "What is the exit load for HDFC Flexi Cap Fund?"),
+    ("Mirae Asset ELSS 3Y Lock-in", "What is the lock-in period for HDFC ELSS Tax Saver Fund?"),
+    ("HDFC Mid-Cap Direct vs Re...", "Compare Direct vs Regular TER for HDFC Mid-Cap Fund"),
+    ("Quant Small Cap Portfolio ...", "What is the portfolio disclosure frequency in SEBI SID guidelines?"),
 )
 
 
@@ -30,69 +38,113 @@ def _prepare_index(persist_directory: str, fingerprint: str | None = None) -> di
 
 def _select_example(question: str) -> None:
     st.session_state["question_input"] = question
+    st.session_state["auto_submit"] = question
 
 
-def _display_response(response: QueryResponse) -> None:
-    with st.container(border=True):
-        st.markdown('<div class="answer-label">ANSWER</div>', unsafe_allow_html=True)
+def _display_response(response: QueryResponse, question_text: str = "") -> None:
+    with st.container():
+        st.markdown(
+            f"""
+            <div class="response-card">
+                <div class="response-header">
+                    <div class="response-tag">
+                        <span class="response-dot"></span> FACTS AI VERIFIED ANSWER
+                    </div>
+                </div>
+                <div class="response-body">
+            """,
+            unsafe_allow_html=True,
+        )
+        if question_text:
+            st.markdown(f'<div class="query-bubble">{question_text}</div>', unsafe_allow_html=True)
+
         if response.answer:
-            st.write(response.answer)
+            st.markdown(f'<div class="answer-content">{response.answer}</div>', unsafe_allow_html=True)
+
         if response.source_url and response.source_date:
+            st.markdown('<div class="source-action-row">', unsafe_allow_html=True)
             st.link_button(
                 "Open official source",
                 response.source_url,
                 key="source_link",
                 icon=":material/open_in_new:",
             )
-            st.caption(f"Last updated from sources: {response.source_date}")
+            st.markdown(
+                f'<span class="source-date">Last updated from sources: {response.source_date}</span>'
+                '</div>',
+                unsafe_allow_html=True,
+            )
         elif response.decision.allowed:
             st.info("The available approved sources could not verify this answer.")
+
+        st.markdown(
+            f'<div class="response-disclaimer">{FACTS_ONLY_DISCLAIMER}</div>'
+            '</div></div>',
+            unsafe_allow_html=True,
+        )
 
 
 def main() -> None:
     st.set_page_config(
-        page_title="Mutual Fund Facts",
-        layout="centered",
+        page_title="Groww • FACTS AI",
+        page_icon="📈",
+        layout="wide",
         initial_sidebar_state="collapsed",
     )
 
+    # Initialize session state keys
+    if "question_input" not in st.session_state:
+        st.session_state["question_input"] = ""
+    if "active_response" not in st.session_state:
+        st.session_state["active_response"] = None
+    if "last_asked_question" not in st.session_state:
+        st.session_state["last_asked_question"] = ""
+    if "auto_submit" not in st.session_state:
+        st.session_state["auto_submit"] = None
+
+    # Custom styling
     st.markdown(
         """
         <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
 
         :root {
-            --bg-main: #0d1114;
-            --bg-card: #13181b;
-            --bg-card-hover: #182025;
-            --border-card: #20272d;
-            --border-card-hover: #2e3b44;
-            --emerald-primary: #00d09c;
-            --emerald-dark: #008c69;
-            --emerald-bg: rgba(0, 208, 156, 0.06);
-            --emerald-border: rgba(0, 208, 156, 0.22);
-            --groww-blue: #5367ff;
-            --text-primary: #ffffff;
-            --text-secondary: #dce3eb;
-            --text-muted: #717e8c;
-            --text-faint: #5a6672;
-            --btn-dark: #242b30;
-            --btn-dark-border: #333d45;
-            --btn-dark-hover: #2b3339;
+            --bg-page: #F8FAFC;
+            --bg-sidebar: #FFFFFF;
+            --bg-card: #FFFFFF;
+            --groww-emerald: #00D09C;
+            --groww-emerald-dark: #00875A;
+            --groww-emerald-subtle: #E6FBF5;
+            --groww-slate: #1E2229;
+            --text-primary: #1E2229;
+            --text-secondary: #64748B;
+            --text-muted: #94A3B8;
+            --border-light: #EAECF0;
+            --border-hover: #00D09C;
+            --shadow-subtle: 0 4px 20px rgba(0, 0, 0, 0.04);
+            --shadow-card: 0 2px 10px rgba(30, 34, 41, 0.04);
         }
 
-        /* Global resets & dark theme background */
+        /* Global Canvas resets */
         html, body, [data-testid="stApp"], [data-testid="stAppViewContainer"] {
-            background: var(--bg-main) !important;
+            background-color: var(--bg-page) !important;
             color: var(--text-primary);
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
         }
 
         [data-testid="stHeader"] {
-            background: transparent !important;
+            display: none !important;
         }
 
-        /* Completely remove the sidebar and any sidebar toggle buttons */
+        /* Remove default streamlit paddings & decorations */
+        .block-container {
+            max-width: 1360px !important;
+            padding-top: 1.25rem !important;
+            padding-bottom: 3.5rem !important;
+            padding-left: 2rem !important;
+            padding-right: 2rem !important;
+        }
+
         [data-testid="stSidebar"],
         [data-testid="stSidebarCollapsedControl"],
         .stAppDeployButton,
@@ -105,252 +157,614 @@ def main() -> None:
             visibility: hidden !important;
         }
 
-        /* Center content layout */
-        .block-container {
-            max-width: 780px !important;
-            padding-top: 4.5rem !important;
-            padding-bottom: 4rem !important;
-            padding-left: 1.5rem !important;
-            padding-right: 1.5rem !important;
-            margin: 0 auto !important;
-        }
-
-        /* Hero Heading */
-        .hero-heading {
-            color: #ffffff !important;
-            font-size: 2.65rem !important;
-            font-weight: 700 !important;
-            text-align: center !important;
-            margin: 0 0 1.5rem 0 !important;
-            letter-spacing: -0.02em !important;
-            line-height: 1.2 !important;
-        }
-
-        /* Facts Disclaimer Banner (100% width matching cards) */
-        .facts-banner {
+        /* Top Navigation Bar */
+        .top-navbar {
             display: flex;
             align-items: center;
-            gap: 10px;
-            width: 100% !important;
-            box-sizing: border-box !important;
-            margin: 0 0 2rem 0 !important;
-            padding: 0.9rem 1.25rem !important;
-            border: 1px solid var(--emerald-border) !important;
-            border-radius: 12px !important;
-            background: var(--emerald-bg) !important;
-            color: #9ab3a8 !important;
-            font-size: 0.92rem !important;
-        }
-
-        .facts-icon {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--emerald-primary);
-            flex-shrink: 0;
-        }
-
-        /* Example questions section label */
-        .section-label {
-            color: var(--text-muted);
-            font-size: 0.84rem;
-            font-weight: 500;
-            margin: 0 0 0.75rem 0;
-            text-align: left;
+            justify-content: space-between;
+            padding: 10px 0 24px 0;
+            border-bottom: 1px solid var(--border-light);
+            margin-bottom: 2rem;
             width: 100%;
         }
 
-        /* Example Question Buttons (Cards) - No truncation, wrap lines naturally */
-        .stApp [data-testid="stAppViewContainer"] .st-key-example_0 button,
-        .stApp [data-testid="stAppViewContainer"] .st-key-example_1 button,
-        .stApp [data-testid="stAppViewContainer"] .st-key-example_2 button {
-            min-height: 94px !important;
-            height: 100% !important;
-            padding: 1.1rem 1.15rem !important;
-            border: 1px solid var(--border-card) !important;
-            border-radius: 14px !important;
-            background-color: var(--bg-card) !important;
-            color: var(--text-secondary) !important;
-            box-shadow: none !important;
+        .nav-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .groww-brand {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 22px;
+            font-weight: 800;
+            color: var(--groww-slate);
+            text-decoration: none;
+            letter-spacing: -0.03em;
+        }
+
+        .facts-tag {
+            background: var(--groww-emerald-subtle);
+            color: var(--groww-emerald-dark);
+            font-size: 11px;
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 20px;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            letter-spacing: 0.04em;
+        }
+
+        .facts-tag-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--groww-emerald);
+        }
+
+        .nav-center {
+            display: flex;
+            align-items: center;
+            gap: 28px;
+        }
+
+        .nav-link {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: color 0.15s ease;
+        }
+
+        .nav-link.active {
+            color: var(--groww-emerald-dark);
+            font-weight: 600;
+        }
+
+        .nav-right {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+        }
+
+        .avatar-circle {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: #0B132B;
+            color: #FFFFFF;
+            font-size: 12px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            letter-spacing: 0.02em;
+        }
+
+        /* Sidebar Styling (Left Column) */
+        .sidebar-container {
+            background: #FFFFFF;
+            border: 1px solid var(--border-light);
+            border-radius: 18px;
+            padding: 18px 16px;
+            min-height: calc(100vh - 150px);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        /* New Check Button */
+        .st-key-btn_new_check button {
+            background: #FFFFFF !important;
+            border: 1px solid #E2E8F0 !important;
+            border-radius: 12px !important;
+            padding: 10px 14px !important;
+            color: var(--text-primary) !important;
+            font-weight: 600 !important;
+            font-size: 14px !important;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.02) !important;
+            transition: all 0.15s ease !important;
+        }
+
+        .st-key-btn_new_check button:hover {
+            border-color: var(--groww-emerald) !important;
+            background: #F8FAFC !important;
+            color: var(--groww-emerald-dark) !important;
+        }
+
+        .sidebar-heading {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-muted);
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            margin: 24px 0 10px 4px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        /* Recent Inquiry Items */
+        .st-key-recent_0 button,
+        .st-key-recent_1 button,
+        .st-key-recent_2 button,
+        .st-key-recent_3 button {
+            background: transparent !important;
+            border: none !important;
+            padding: 9px 8px !important;
+            color: #475569 !important;
+            font-size: 13px !important;
+            font-weight: 500 !important;
             text-align: left !important;
+            display: block !important;
+            width: 100% !important;
+            border-radius: 8px !important;
+            box-shadow: none !important;
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+            transition: all 0.15s ease !important;
+        }
+
+        .st-key-recent_0 button:hover,
+        .st-key-recent_1 button:hover,
+        .st-key-recent_2 button:hover,
+        .st-key-recent_3 button:hover {
+            background: #F1F5F9 !important;
+            color: var(--text-primary) !important;
+        }
+
+        .sidebar-footer {
+            margin-top: auto;
+            padding-top: 18px;
+            border-top: 1px solid var(--border-light);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .status-feed {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .status-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--groww-emerald);
+        }
+
+        /* Hero Area */
+        .hero-section {
+            text-align: center;
+            margin: 1.5rem auto 2.5rem auto;
+            max-width: 680px;
+        }
+
+        .hero-title {
+            font-size: 46px;
+            font-weight: 800;
+            color: var(--text-primary);
+            letter-spacing: -0.035em;
+            margin: 0 0 10px 0;
+            line-height: 1.15;
+        }
+
+        .hero-highlight {
+            color: var(--groww-emerald-dark);
+        }
+
+        .hero-subtitle {
+            font-size: 16px;
+            color: var(--text-secondary);
+            font-weight: 400;
+            line-height: 1.5;
+            margin: 0;
+        }
+
+        /* 4 Prompt Cards Grid */
+        .st-key-card_0 button,
+        .st-key-card_1 button,
+        .st-key-card_2 button,
+        .st-key-card_3 button {
+            background: #FFFFFF !important;
+            border: 1.5px solid #EAECF0 !important;
+            border-radius: 16px !important;
+            min-height: 175px !important;
+            height: 100% !important;
+            padding: 16px !important;
             display: flex !important;
+            flex-direction: column !important;
             align-items: flex-start !important;
             justify-content: flex-start !important;
-            transition: border-color 0.15s ease, background-color 0.15s ease !important;
-        }
-
-        .st-key-example_0 button:hover,
-        .st-key-example_1 button:hover,
-        .st-key-example_2 button:hover {
-            border-color: var(--border-card-hover) !important;
-            background-color: var(--bg-card-hover) !important;
-        }
-
-        /* Force wrapping across all child containers inside example buttons */
-        .st-key-example_0 button *,
-        .st-key-example_1 button *,
-        .st-key-example_2 button * {
-            white-space: normal !important;
-            overflow: visible !important;
-            text-overflow: clip !important;
-            word-break: normal !important;
-            overflow-wrap: break-word !important;
-        }
-
-        .st-key-example_0 button p,
-        .st-key-example_1 button p,
-        .st-key-example_2 button p {
-            color: var(--text-secondary) !important;
-            font-size: 0.92rem !important;
-            line-height: 1.42 !important;
             text-align: left !important;
-            font-weight: 400 !important;
-            margin: 0 !important;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02) !important;
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
         }
 
-        .st-key-example_0 button:hover p,
-        .st-key-example_1 button:hover p,
-        .st-key-example_2 button:hover p {
-            color: #ffffff !important;
+        .st-key-card_0 button:hover,
+        .st-key-card_1 button:hover,
+        .st-key-card_2 button:hover,
+        .st-key-card_3 button:hover {
+            border-color: var(--border-hover) !important;
+            transform: translateY(-3px) !important;
+            box-shadow: 0 8px 24px rgba(0, 208, 156, 0.12) !important;
+            background: #FFFFFF !important;
         }
 
-        /* Input Form (100% width matching cards) */
+        .st-key-card_0 button p,
+        .st-key-card_1 button p,
+        .st-key-card_2 button p,
+        .st-key-card_3 button p {
+            color: var(--text-primary) !important;
+            font-size: 13.5px !important;
+            font-weight: 600 !important;
+            margin: 0 0 10px 0 !important;
+            line-height: 1.3 !important;
+        }
+
+        /* Card 0: Calculation Box */
+        .st-key-card_0 button::after {
+            content: "1. Exit Load Calculation:\\A load = (days < 365) ? 1.0%\\A : 0%\\A net_nav = nav * (1 - load)";
+            white-space: pre-wrap;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10.5px;
+            line-height: 1.45;
+            color: var(--text-secondary);
+            background: #F8FAFC;
+            border: 1px solid #E2E8F0;
+            border-radius: 8px;
+            padding: 8px 10px;
+            width: calc(100% - 20px);
+            display: block;
+            text-align: left;
+        }
+
+        /* Card 1: Illustrated Document Preview */
+        .st-key-card_1 button::after {
+            content: "";
+            width: calc(100% - 20px);
+            height: 85px;
+            background: #F8FAFC url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="160" height="85" viewBox="0 0 160 85"><rect x="18" y="8" width="124" height="68" rx="6" fill="%23FFFFFF" stroke="%23E2E8F0" stroke-width="1.5"/><rect x="26" y="16" width="46" height="15" rx="3" fill="%23FEE2E2"/><text x="31" y="27" font-family="sans-serif" font-size="8.5" font-weight="bold" fill="%23EF4444">PDF SID</text><circle cx="124" cy="24" r="7" fill="%2300D09C"/><text x="121" y="28" font-family="sans-serif" font-size="11" font-weight="bold" fill="%23FFFFFF">+</text><line x1="26" y1="42" x2="132" y2="42" stroke="%23E2E8F0" stroke-width="2.2" stroke-linecap="round"/><line x1="26" y1="52" x2="105" y2="52" stroke="%23E2E8F0" stroke-width="2.2" stroke-linecap="round"/><line x1="26" y1="62" x2="118" y2="62" stroke="%23E2E8F0" stroke-width="2.2" stroke-linecap="round"/></svg>') center/contain no-repeat;
+            border: 1px solid #E2E8F0;
+            border-radius: 8px;
+            display: block;
+        }
+
+        /* Card 2: TER Breakdown */
+        .st-key-card_2 button::after {
+            content: "Statutory TER Difference:\\A [Parag Parikh Flexi Cap]\\A 1. Direct Plan: 0.78%\\A 2. Regular Plan: 1.63% (Δ 0.85%)";
+            white-space: pre-wrap;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            font-size: 10.5px;
+            line-height: 1.45;
+            color: var(--text-secondary);
+            background: #F8FAFC;
+            border: 1px solid #E2E8F0;
+            border-radius: 8px;
+            padding: 8px 10px;
+            width: calc(100% - 20px);
+            display: block;
+            text-align: left;
+        }
+
+        /* Card 3: Emerald Bar Chart */
+        .st-key-card_3 button::after {
+            content: "";
+            width: calc(100% - 20px);
+            height: 85px;
+            background: #F8FAFC url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="160" height="85" viewBox="0 0 160 85"><rect x="25" y="48" width="9" height="24" rx="2" fill="%2300D09C"/><rect x="38" y="34" width="9" height="38" rx="2" fill="%2300D09C"/><rect x="51" y="16" width="9" height="56" rx="2" fill="%2300D09C"/><rect x="64" y="26" width="9" height="46" rx="2" fill="%2300D09C"/><rect x="77" y="52" width="9" height="20" rx="2" fill="%2300D09C"/><rect x="90" y="40" width="9" height="32" rx="2" fill="%2300D09C"/><rect x="103" y="20" width="9" height="52" rx="2" fill="%2300D09C"/><rect x="116" y="28" width="9" height="44" rx="2" fill="%2300D09C"/></svg>') center/contain no-repeat;
+            border: 1px solid #E2E8F0;
+            border-radius: 8px;
+            display: block;
+        }
+
+        /* Floating Pill Search Bar Form */
         [data-testid="stForm"] {
-            border: 1px solid var(--border-card) !important;
-            border-radius: 16px !important;
-            background: var(--bg-card) !important;
-            padding: 6px 8px 6px 14px !important;
-            box-shadow: none !important;
-            margin-top: 1.5rem !important;
+            background: #FFFFFF !important;
+            border: 1.5px solid #E2E8F0 !important;
+            border-radius: 36px !important;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04) !important;
+            padding: 6px 8px 6px 20px !important;
+            margin-top: 2.25rem !important;
             width: 100% !important;
             box-sizing: border-box !important;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
         }
 
+        [data-testid="stForm"]:focus-within {
+            border-color: var(--groww-emerald) !important;
+            box-shadow: 0 6px 24px rgba(0, 208, 156, 0.14) !important;
+        }
+
+        /* Input Element Inside Searchbar */
         [data-testid="stTextInputRootElement"] > div,
         [data-testid="stTextInputRootElement"] div[data-baseweb="input"] {
-            min-height: 48px !important;
             border: none !important;
             background: transparent !important;
             box-shadow: none !important;
+            padding: 0 !important;
+            min-height: 48px !important;
+        }
+
+        [data-testid="stTextInputRootElement"] div[data-baseweb="base-input"] {
+            position: relative !important;
+            display: flex !important;
+            align-items: center !important;
         }
 
         [data-testid="stTextInputRootElement"] input {
-            min-height: 48px !important;
-            padding: 0 !important;
-            color: #f0f6fc !important;
+            color: var(--text-primary) !important;
             background: transparent !important;
-            font-size: 0.95rem !important;
-            caret-color: #00d09c !important;
-        }
-
-        [data-testid="stTextInputRootElement"] input::placeholder {
-            color: var(--text-faint) !important;
-            opacity: 1 !important;
-        }
-
-        /* Submit (Ask) Button */
-        .st-key-ask_button button {
-            min-height: 44px !important;
-            border: 1px solid var(--btn-dark-border) !important;
-            border-radius: 10px !important;
-            background: var(--btn-dark) !important;
-            color: #a9b5c0 !important;
+            font-size: 15px !important;
             font-weight: 500 !important;
-            font-size: 0.9rem !important;
+            caret-color: var(--groww-emerald-dark) !important;
+            padding-left: 0 !important;
+            min-height: 48px !important;
+            position: relative;
+            z-index: 2;
+        }
+
+        /* Suggested Questions Smooth Animation in Searchbar */
+        @keyframes smoothQuestionSlide {
+            0% {
+                content: "Ask a mutual fund fact (e.g., exit load for Parag Parikh Flexi Cap)...";
+                opacity: 0;
+                transform: translateY(calc(-50% + 10px));
+            }
+            2%, 17% {
+                content: "Ask a mutual fund fact (e.g., exit load for Parag Parikh Flexi Cap)...";
+                opacity: 1;
+                transform: translateY(-50%);
+            }
+            19.5% {
+                content: "Ask a mutual fund fact (e.g., exit load for Parag Parikh Flexi Cap)...";
+                opacity: 0;
+                transform: translateY(calc(-50% - 10px));
+            }
+            19.6% {
+                content: "What is the exit load for HDFC Flexi Cap Fund?";
+                opacity: 0;
+                transform: translateY(calc(-50% + 10px));
+            }
+            22%, 37% {
+                content: "What is the exit load for HDFC Flexi Cap Fund?";
+                opacity: 1;
+                transform: translateY(-50%);
+            }
+            39.5% {
+                content: "What is the exit load for HDFC Flexi Cap Fund?";
+                opacity: 0;
+                transform: translateY(calc(-50% - 10px));
+            }
+            39.6% {
+                content: "Compare Direct vs Regular TER for HDFC Top 100...";
+                opacity: 0;
+                transform: translateY(calc(-50% + 10px));
+            }
+            42%, 57% {
+                content: "Compare Direct vs Regular TER for HDFC Top 100...";
+                opacity: 1;
+                transform: translateY(-50%);
+            }
+            59.5% {
+                content: "Compare Direct vs Regular TER for HDFC Top 100...";
+                opacity: 0;
+                transform: translateY(calc(-50% - 10px));
+            }
+            59.6% {
+                content: "What is the lock-in period for HDFC ELSS Tax Saver?";
+                opacity: 0;
+                transform: translateY(calc(-50% + 10px));
+            }
+            62%, 77% {
+                content: "What is the lock-in period for HDFC ELSS Tax Saver?";
+                opacity: 1;
+                transform: translateY(-50%);
+            }
+            79.5% {
+                content: "What is the lock-in period for HDFC ELSS Tax Saver?";
+                opacity: 0;
+                transform: translateY(calc(-50% - 10px));
+            }
+            79.6% {
+                content: "Inspect statutory SID & KIM for HDFC Mid-Cap Opportunities...";
+                opacity: 0;
+                transform: translateY(calc(-50% + 10px));
+            }
+            82%, 97% {
+                content: "Inspect statutory SID & KIM for HDFC Mid-Cap Opportunities...";
+                opacity: 1;
+                transform: translateY(-50%);
+            }
+            99.5% {
+                content: "Inspect statutory SID & KIM for HDFC Mid-Cap Opportunities...";
+                opacity: 0;
+                transform: translateY(calc(-50% - 10px));
+            }
+            100% {
+                content: "Ask a mutual fund fact (e.g., exit load for Parag Parikh Flexi Cap)...";
+                opacity: 0;
+                transform: translateY(calc(-50% + 10px));
+            }
+        }
+
+        [data-testid="stTextInputRootElement"] div[data-baseweb="base-input"]::before {
+            content: "Ask a mutual fund fact (e.g., exit load for Parag Parikh Flexi Cap)...";
+            position: absolute;
+            left: 2px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            font-size: 14.5px;
+            font-weight: 400;
+            pointer-events: none;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: calc(100% - 140px);
+            z-index: 1;
+            animation: smoothQuestionSlide 20s cubic-bezier(0.2, 0.8, 0.2, 1) infinite;
+        }
+
+        /* Hide animated placeholder on focus or when input has content */
+        [data-testid="stTextInputRootElement"] div[data-baseweb="base-input"]:focus-within::before,
+        [data-testid="stTextInputRootElement"] div[data-baseweb="base-input"]:has(input:not(:placeholder-shown))::before {
+            display: none !important;
+            opacity: 0 !important;
+            animation: none !important;
+        }
+
+        /* Ask Facts AI Button (Green Pill) */
+        .st-key-ask_button button {
+            background: var(--groww-emerald-dark) !important;
+            color: #FFFFFF !important;
+            border-radius: 30px !important;
+            border: none !important;
+            min-height: 44px !important;
+            height: 44px !important;
+            padding: 0 18px !important;
+            font-size: 13.5px !important;
+            font-weight: 600 !important;
             display: flex !important;
             align-items: center !important;
             justify-content: center !important;
             gap: 6px !important;
-            padding: 0 14px !important;
+            box-shadow: 0 2px 8px rgba(0, 135, 90, 0.2) !important;
             transition: all 0.15s ease !important;
-            box-shadow: none !important;
         }
 
         .st-key-ask_button button:hover {
-            background: var(--btn-dark-hover) !important;
-            border-color: #414f59 !important;
-            color: #ffffff !important;
+            background: #00704A !important;
+            transform: scale(1.02) !important;
+            color: #FFFFFF !important;
         }
 
         .st-key-ask_button button p {
-            color: #a9b5c0 !important;
-            font-size: 0.9rem !important;
-            font-weight: 500 !important;
+            color: #FFFFFF !important;
+            font-size: 13.5px !important;
+            font-weight: 600 !important;
             margin: 0 !important;
         }
 
-        .st-key-ask_button button:hover p {
-            color: #ffffff !important;
+        /* Disclaimer under Search Bar */
+        .footer-disclaimer {
+            text-align: center;
+            font-size: 12px;
+            color: var(--text-muted);
+            font-weight: 500;
+            margin-top: 14px;
         }
 
-        .st-key-ask_button button [data-testid="stIconMaterial"] {
-            color: #8a96a1 !important;
-            font-size: 17px !important;
+        /* Response Card */
+        .response-card {
+            background: #FFFFFF;
+            border: 1.5px solid var(--border-light);
+            border-radius: 20px;
+            padding: 24px;
+            margin-top: 2rem;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.05);
+            transition: all 0.2s ease;
         }
 
-        .st-key-ask_button button:hover [data-testid="stIconMaterial"] {
-            color: #ffffff !important;
+        .response-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 14px;
         }
 
-        /* Response Container (100% width matching input) */
-        [data-testid="stVerticalBlockBorderWrapper"] {
-            width: 100% !important;
-            box-sizing: border-box !important;
-            margin-top: 1.5rem !important;
-            border: 1px solid var(--border-card) !important;
-            border-radius: 16px !important;
-            background: var(--bg-card) !important;
-            padding: 1.35rem 1.5rem !important;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25) !important;
-        }
-
-        .answer-label {
-            margin-bottom: 0.75rem;
-            color: var(--emerald-primary);
-            font-size: 0.78rem;
+        .response-tag {
+            background: var(--groww-emerald-subtle);
+            color: var(--groww-emerald-dark);
+            font-size: 11px;
             font-weight: 700;
-            letter-spacing: 0.06em;
+            padding: 4px 10px;
+            border-radius: 12px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            letter-spacing: 0.04em;
+        }
+
+        .response-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--groww-emerald);
+        }
+
+        .query-bubble {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-primary);
+            padding: 10px 14px;
+            background: #F8FAFC;
+            border-radius: 10px;
+            margin-bottom: 16px;
+            border-left: 3px solid var(--groww-emerald);
+        }
+
+        .answer-content {
+            font-size: 15px;
+            line-height: 1.65;
+            color: #334155;
+            margin-bottom: 18px;
+        }
+
+        .source-action-row {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-top: 14px;
+            padding-top: 14px;
+            border-top: 1px solid var(--border-light);
         }
 
         [data-testid="stLinkButton"] a {
-            min-height: 40px !important;
-            border: 1px solid #165b45 !important;
+            background: var(--groww-emerald-subtle) !important;
+            border: 1px solid rgba(0, 208, 156, 0.3) !important;
             border-radius: 8px !important;
-            background: #0c2b21 !important;
-            color: var(--emerald-primary) !important;
-            font-weight: 500 !important;
-            font-size: 0.88rem !important;
+            color: var(--groww-emerald-dark) !important;
+            font-size: 13px !important;
+            font-weight: 600 !important;
+            padding: 6px 14px !important;
             transition: all 0.15s ease !important;
         }
 
         [data-testid="stLinkButton"] a:hover {
-            border-color: var(--emerald-primary) !important;
-            background: #11382b !important;
-            color: #34d399 !important;
+            background: rgba(0, 208, 156, 0.18) !important;
+            border-color: var(--groww-emerald) !important;
+            color: var(--groww-emerald-dark) !important;
         }
 
-        [data-testid="stLinkButton"] a p {
-            color: var(--emerald-primary) !important;
+        .source-date {
+            font-size: 12px;
+            color: var(--text-secondary);
         }
 
-        [data-testid="stLinkButton"] a:hover p {
-            color: #34d399 !important;
+        .response-disclaimer {
+            font-size: 11.5px;
+            color: var(--text-muted);
+            margin-top: 14px;
+            padding-top: 10px;
+            border-top: 1px dashed var(--border-light);
         }
 
-        [data-testid="stCaptionContainer"] p {
-            margin-top: 0.75rem !important;
-            color: var(--text-muted) !important;
-            font-size: 0.84rem !important;
-        }
-
-        @media (max-width: 640px) {
-            .block-container {
-                padding-top: 2rem !important;
-                padding-left: 1rem !important;
-                padding-right: 1rem !important;
+        @media (max-width: 900px) {
+            .sidebar-container {
+                min-height: auto;
+                margin-bottom: 2rem;
             }
-            .hero-heading {
-                font-size: 2rem !important;
+            .hero-title {
+                font-size: 32px;
             }
         }
         </style>
@@ -365,66 +779,168 @@ def main() -> None:
         st.error(f"Unable to prepare the local knowledge index: {exc}")
         return
 
-    # Hero Title
-    st.markdown(
-        '<h1 class="hero-heading">Welcome to Mutual Fund Facts</h1>',
-        unsafe_allow_html=True,
-    )
+    # Two column layout: Left Sidebar (width 1) and Main Canvas (width 3.8)
+    sidebar_col, main_col = st.columns([1, 3.8], gap="large")
 
-    # Facts Disclaimer Banner
-    st.markdown(
-        '<div class="facts-banner">'
-        '<div class="facts-icon">'
-        '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">'
-        '<circle cx="12" cy="12" r="10"></circle>'
-        '<line x1="12" y1="16" x2="12" y2="12"></line>'
-        '<line x1="12" y1="8" x2="12.01" y2="8"></line>'
-        '</svg>'
-        '</div>'
-        f"<span>{FACTS_ONLY_DISCLAIMER}</span></div>",
-        unsafe_allow_html=True,
-    )
+    # ------------------ LEFT SIDEBAR ------------------
+    with sidebar_col:
+        st.markdown('<div class="sidebar-container"><div>', unsafe_allow_html=True)
 
-    # Example Questions
-    st.markdown('<div class="section-label">Example questions</div>', unsafe_allow_html=True)
-    columns = st.columns(3)
-    for index, question_text in enumerate(EXAMPLE_QUESTIONS):
-        columns[index].button(
-            question_text,
-            key=f"example_{index}",
-            use_container_width=True,
-            on_click=_select_example,
-            args=(question_text,),
+        # New Check Button
+        if st.button("+ New Check", key="btn_new_check", use_container_width=True):
+            st.session_state["question_input"] = ""
+            st.session_state["active_response"] = None
+            st.session_state["last_asked_question"] = ""
+            st.session_state["auto_submit"] = None
+            st.rerun()
+
+        # Recent Inquiries Header
+        st.markdown(
+            '<div class="sidebar-heading">'
+            '<span>RECENT INQUIRIES</span>'
+            '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'
+            '<circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>'
+            '</div>',
+            unsafe_allow_html=True,
         )
 
-    # Input Form
-    with st.form("question_form"):
-        input_column, send_column = st.columns([6, 1])
-        question = input_column.text_input(
-            "Question",
-            key="question_input",
-            label_visibility="collapsed",
-            placeholder="Ask a factual mutual fund question...",
-        )
-        submitted = send_column.form_submit_button(
-            "Ask",
-            key="ask_button",
-            icon=":material/send:",
-            use_container_width=True,
+        # Recent Inquiries list
+        for idx, (label, query) in enumerate(RECENT_INQUIRIES):
+            st.button(
+                label,
+                key=f"recent_{idx}",
+                on_click=_select_example,
+                args=(query,),
+                use_container_width=True,
+            )
+
+        # Bottom status in sidebar
+        st.markdown(
+            '</div>'
+            '<div class="sidebar-footer">'
+            '<span class="status-feed"><span class="status-dot"></span> SEBI SID Feeds</span>'
+            '<span class="status-ver">v2.4</span>'
+            '</div>'
+            '</div>',
+            unsafe_allow_html=True,
         )
 
-    if submitted:
-        if not question.strip():
-            st.warning("Enter a question first.")
-        else:
+    # ------------------ MAIN CANVAS ------------------
+    with main_col:
+        # Top Navigation Bar
+        st.markdown(
+            """
+            <div class="top-navbar">
+                <div class="nav-left">
+                    <a href="#" class="groww-brand">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#00D09C" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline>
+                            <polyline points="16 7 22 7 22 13"></polyline>
+                        </svg>
+                        <span>Groww</span>
+                    </a>
+                    <div class="facts-tag">
+                        <span class="facts-tag-dot"></span> FACTS AI
+                    </div>
+                </div>
+                <div class="nav-center">
+                    <a href="#" class="nav-link active">Explore</a>
+                    <a href="#" class="nav-link">Mutual Funds</a>
+                    <a href="#" class="nav-link">Tools</a>
+                </div>
+                <div class="nav-right">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#64748B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                        <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                    </svg>
+                    <div class="avatar-circle">IN</div>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        # Hero Greeting & Subtitle
+        st.markdown(
+            """
+            <div class="hero-section">
+                <h1 class="hero-title">Hello, <span class="hero-highlight">Investor</span></h1>
+                <p class="hero-subtitle">Ask any factual question about mutual funds, exit loads, expense ratios, or statutory rules.</p>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        # 4 Prompt Cards Grid
+        card_cols = st.columns(4)
+        card_titles = (
+            "Explain Scheme Exit Loads",
+            "Inspect Statutory SID & KIM",
+            "Compare Direct vs Regular TER",
+            "Analyze Rolling Returns & Risk",
+        )
+        for idx, (title, query) in enumerate(zip(card_titles, EXAMPLE_QUESTIONS)):
+            with card_cols[idx]:
+                st.button(
+                    title,
+                    key=f"card_{idx}",
+                    on_click=_select_example,
+                    args=(query,),
+                    use_container_width=True,
+                )
+
+        # Floating Pill Search Bar Form
+        with st.form("question_form", clear_on_submit=False):
+            search_cols = st.columns([8.2, 1.8], gap="small")
+            with search_cols[0]:
+                question = st.text_input(
+                    "Question",
+                    key="question_input",
+                    label_visibility="collapsed",
+                    placeholder=" ",
+                )
+            with search_cols[1]:
+                submitted = st.form_submit_button(
+                    "Ask Facts AI ↑",
+                    key="ask_button",
+                    use_container_width=True,
+                )
+
+        # Footer disclaimer under search bar
+        st.markdown(
+            '<div class="footer-disclaimer">'
+            'Strictly factual data from SEBI SID & AMFI filings • Zero subjective advice'
+            '</div>',
+            unsafe_allow_html=True,
+        )
+
+        # Execute query if submitted or if auto_submit was triggered by a card/recent inquiry
+        active_query = ""
+        if submitted and question.strip():
+            active_query = question.strip()
+        elif st.session_state.get("auto_submit"):
+            active_query = st.session_state["auto_submit"]
+            st.session_state["auto_submit"] = None
+
+        if active_query:
             try:
-                with st.spinner("Checking approved sources..."):
-                    response = answer_question(question.strip())
-                _display_response(response)
+                with st.spinner("Checking official SEBI and AMC sources..."):
+                    response = answer_question(active_query)
+                st.session_state["active_response"] = response
+                st.session_state["last_asked_question"] = active_query
             except GroqRequestError as exc:
                 st.error(str(exc))
             except Exception:
                 st.error("The question could not be answered. Check the local index and Groq configuration, then try again.")
+        elif submitted and not question.strip():
+            st.warning("Enter a question first.")
+
+        # Display active response if present
+        if st.session_state.get("active_response"):
+            _display_response(
+                st.session_state["active_response"],
+                question_text=st.session_state.get("last_asked_question", ""),
+            )
 
 
 if __name__ == "__main__":

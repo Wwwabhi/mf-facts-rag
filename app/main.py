@@ -308,9 +308,18 @@ def main() -> None:
             color: var(--text-primary) !important;
         }
 
+        /* Bottom Search Placement */
+        .search-area-bottom {
+            margin-top: clamp(4rem, 18vh, 14rem);
+        }
+
+        .search-area-normal {
+            margin-top: 1.5rem;
+        }
+
         .sidebar-footer {
-            margin-top: auto;
-            padding-top: 18px;
+            margin-top: clamp(6rem, 28vh, 22rem);
+            padding-top: 14px;
             border-top: 1px solid var(--border-light);
             display: flex;
             align-items: center;
@@ -894,7 +903,18 @@ def main() -> None:
                     use_container_width=True,
                 )
 
-        # Floating Pill Search Bar Form
+        # Display active response above the search bar if present
+        if st.session_state.get("active_response"):
+            _display_response(
+                st.session_state["active_response"],
+                question_text=st.session_state.get("last_asked_question", ""),
+            )
+
+        # Space pushing search bar to the bottom on initial screen
+        search_spacer = "search-area-normal" if st.session_state.get("active_response") else "search-area-bottom"
+        st.markdown(f'<div class="{search_spacer}"></div>', unsafe_allow_html=True)
+
+        # Floating Pill Search Bar Form at the bottom
         with st.form("question_form", clear_on_submit=False):
             search_cols = st.columns([8.2, 1.8], gap="small")
             with search_cols[0]:
@@ -911,7 +931,7 @@ def main() -> None:
                     use_container_width=True,
                 )
 
-        # Footer disclaimer under search bar
+        # Footer disclaimer under bottom search bar
         st.markdown(
             '<div class="footer-disclaimer">'
             'Strictly factual data from SEBI SID & AMFI filings • Zero subjective advice'
@@ -933,19 +953,13 @@ def main() -> None:
                     response = answer_question(active_query)
                 st.session_state["active_response"] = response
                 st.session_state["last_asked_question"] = active_query
+                st.rerun()
             except GroqRequestError as exc:
                 st.error(str(exc))
             except Exception:
                 st.error("The question could not be answered. Check the local index and Groq configuration, then try again.")
         elif submitted and not question.strip():
             st.warning("Enter a question first.")
-
-        # Display active response if present
-        if st.session_state.get("active_response"):
-            _display_response(
-                st.session_state["active_response"],
-                question_text=st.session_state.get("last_asked_question", ""),
-            )
 
 
 if __name__ == "__main__":

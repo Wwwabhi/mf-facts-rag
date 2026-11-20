@@ -244,28 +244,19 @@ def main() -> None:
             letter-spacing: 0.02em;
         }
 
-        /* Sidebar Styling (Left Column) */
-        .sidebar-container {
-            background: #FFFFFF;
-            border: 1px solid var(--border-light);
-            border-radius: 18px;
-            padding: 18px 16px;
-            min-height: calc(100vh - 150px);
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-        }
-
-        /* New Check Button */
+        /* New Check Button (Right at Top of Left Sidebar) */
         .st-key-btn_new_check button {
             background: #FFFFFF !important;
             border: 1px solid #E2E8F0 !important;
             border-radius: 12px !important;
-            padding: 10px 14px !important;
+            padding: 11px 16px !important;
             color: var(--text-primary) !important;
             font-weight: 600 !important;
             font-size: 14px !important;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.02) !important;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+            margin-top: 4px !important;
+            margin-bottom: 0.5rem !important;
+            width: 100% !important;
             transition: all 0.15s ease !important;
         }
 
@@ -781,10 +772,6 @@ def main() -> None:
         }
 
         @media (max-width: 900px) {
-            .sidebar-container {
-                min-height: auto;
-                margin-bottom: 2rem;
-            }
             .hero-title {
                 font-size: 32px;
             }
@@ -806,9 +793,7 @@ def main() -> None:
 
     # ------------------ LEFT SIDEBAR ------------------
     with sidebar_col:
-        st.markdown('<div class="sidebar-container"><div>', unsafe_allow_html=True)
-
-        # New Check Button
+        # New Check Button placed directly at the top
         if st.button("+ New Check", key="btn_new_check", use_container_width=True):
             st.session_state["question_input"] = ""
             st.session_state["active_response"] = None
@@ -838,11 +823,9 @@ def main() -> None:
 
         # Bottom status in sidebar
         st.markdown(
-            '</div>'
             '<div class="sidebar-footer">'
             '<span class="status-feed"><span class="status-dot"></span> SEBI SID Feeds</span>'
             '<span class="status-ver">v2.4</span>'
-            '</div>'
             '</div>',
             unsafe_allow_html=True,
         )
